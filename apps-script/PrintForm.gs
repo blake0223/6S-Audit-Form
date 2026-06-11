@@ -4,9 +4,12 @@
  * (the browser's PDF viewer), where you print it with the viewer's print button
  * or Ctrl/Cmd-P. No download to Drive.
  *
- * Rows 4–5 are omitted from the printout: the PDF export takes only one contiguous
- * range, so those rows are hidden just for the export and restored immediately
- * after (Sheets leaves hidden rows out of the PDF).
+ * Rows left off the printout (hidden just for the export, then restored):
+ *   • rows 4–5, and
+ *   • any unfilled custom-item row (description still contains the
+ *     "Add a room-specific item …" placeholder).
+ * The PDF export takes only one contiguous range, so hiding rows is how we drop
+ * them — Sheets leaves hidden rows out of the PDF.
  *
  * Why a new tab and not auto-print inside the dialog: Chrome renders a PDF in its
  * own (cross-origin) viewer, so printing it from inside an Apps Script dialog ends
@@ -15,17 +18,20 @@
  * Menu: 6S Audit Tools ▸ Print blank form   (wired up in onOpen.gs)
  */
 
-var SKIP_ROW_START = 4; // first row to leave off the printout
+var SKIP_ROW_START = 4; // first fixed row to leave off the printout
 var SKIP_ROW_COUNT = 2; // rows 4 and 5
+var PLACEHOLDER_TEXT = 'Add a room-specific item'; // unfilled custom rows
 
 function printForm() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var sheet = SpreadsheetApp.getActiveSheet();
   var b64;
+  var placeholderRows = findPlaceholderRows_(sheet);
 
-  // Hide rows 4–5 only while the PDF is generated, then put them back.
+  // Hide rows 4–5 and all unfilled placeholder rows only while the PDF is built.
   try {
     sheet.hideRows(SKIP_ROW_START, SKIP_ROW_COUNT);
+    for (var h = 0; h < placeholderRows.length; h++) sheet.hideRows(placeholderRows[h], 1);
     SpreadsheetApp.flush();
 
     var lastRow = sheet.getLastRow();
@@ -50,6 +56,7 @@ function printForm() {
     );
   } finally {
     sheet.showRows(SKIP_ROW_START, SKIP_ROW_COUNT);
+    for (var s = 0; s < placeholderRows.length; s++) sheet.showRows(placeholderRows[s], 1);
     SpreadsheetApp.flush();
   }
 
@@ -68,6 +75,19 @@ function printForm() {
     + '</body>')
     .setWidth(360).setHeight(180);
   SpreadsheetApp.getUi().showModalDialog(html, 'Print — ' + sheet.getName());
+}
+
+/** Row numbers whose description (questions column) still holds the placeholder. */
+function findPlaceholderRows_(sheet) {
+  var lastRow = sheet.getLastRow();
+  var headerRow = findHeaderRow_(sheet, lastRow);
+  var qCol = findQuestionCol_(sheet, headerRow) || QUESTION_COL;
+  var vals = sheet.getRange(1, qCol, lastRow, 1).getValues();
+  var rows = [];
+  for (var i = 0; i < vals.length; i++) {
+    if (String(vals[i][0]).indexOf(PLACEHOLDER_TEXT) >= 0) rows.push(i + 1);
+  }
+  return rows;
 }
 
 /** Minimal HTML escaping for the sheet name shown in the dialog. */
