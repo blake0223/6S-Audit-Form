@@ -1,3 +1,4 @@
+import os
 import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.worksheet.datavalidation import DataValidation
@@ -113,7 +114,7 @@ def build_room_form(ws, examples=None):
     ws.row_dimensions[5].height = 16
 
     # Column headers (row 7); summary formulas filled after we know last row (row 6)
-    hdr = ["No.", "Check Item", "Description / Audit Question", "Score\n(0–3)",
+    hdr = ["No.", "Check Item", "Description / Audit Question", "Total Score\n(0–3)",
            "Comments  (required if score < 2)"]
     for i, h in enumerate(hdr):
         cl = get_column_letter(1 + i)
@@ -307,6 +308,6 @@ ws.page_setup.orientation = "landscape"
 ws.page_setup.fitToWidth = 1
 ws.sheet_properties.pageSetUpPr.fitToPage = True
 
-out = r"C:\Users\Blake\Downloads\6S Audit Template.xlsx"
+out = os.path.join(os.path.dirname(os.path.abspath(__file__)), "6S-Audit-Template.xlsx")
 wb.save(out)
 print("saved", out)

@@ -1,12 +1,11 @@
 /**
- * AddRoomColumn — inserts a scoring column for a new room, immediately to the
- * right of the questions column. Everything is located by HEADER TEXT (not fixed
- * column letters) so it keeps working as columns shift right with each new room.
+ * AddRoomColumn — inserts an individual scoring column for a new room,
+ * immediately to the right of the questions column. The question column is found
+ * by HEADER TEXT (not a fixed letter) so it keeps working as columns shift right.
  *
- * Per room it:
- *   • labels the header with the room name in a unique color,
- *   • writes a per-room Total Score =SUM(...) on the "Total Score" row.
- * (No data validation is applied — the 0–3 requirement is enforced elsewhere.)
+ * It sets the new column header to the room name in a unique rotating color.
+ * No data validation and no totals are added — each room column is simply its own
+ * 0–3 scoring column (the 0–3 rule is enforced elsewhere).
  *
  * Menu: 6S Audit Tools ▸ Add room column   (wired up in onOpen.gs)
  */
@@ -24,11 +23,10 @@ function addRoomColumn() {
   var roomName = resp.getResponseText().trim();
   if (!roomName) { ui.alert('No room name entered — nothing added.'); return; }
 
-  var lastRow     = sheet.getLastRow();
-  var headerRow   = findHeaderRow_(sheet, lastRow);
+  var headerRow   = findHeaderRow_(sheet, sheet.getLastRow());
   var questionCol = findQuestionCol_(sheet, headerRow) || QUESTION_COL;
 
-  // New blank column right of the questions column.
+  // New blank scoring column right of the questions column.
   sheet.insertColumnsAfter(questionCol, 1);
   var newCol = questionCol + 1;
 
@@ -41,28 +39,6 @@ function addRoomColumn() {
     .setBackground(color.bg)
     .setHorizontalAlignment('center')
     .setWrap(true);
-
-  // Find the item-row span (numeric column A) — only to size the Total Score sum.
-  // No data validation is applied here; the 0–3 rule is enforced elsewhere.
-  var firstItem = 0, lastItem = 0;
-  var colA = sheet.getRange(headerRow + 1, 1, lastRow - headerRow, 1).getValues();
-  for (var i = 0; i < colA.length; i++) {
-    if (typeof colA[i][0] === 'number' && colA[i][0] > 0) {
-      var r = headerRow + 1 + i;
-      sheet.getRange(r, newCol).setHorizontalAlignment('center');
-      if (!firstItem) firstItem = r;
-      lastItem = r;
-    }
-  }
-
-  // Per-room Total Score on the "Total Score" row.
-  var totalRow = findRowByText_(sheet, lastRow, 'total score');
-  if (totalRow && firstItem) {
-    var L = columnToLetter_(newCol);
-    sheet.getRange(totalRow, newCol)
-      .setHorizontalAlignment('center')
-      .setFormula('=SUM(' + L + firstItem + ':' + L + lastItem + ')');
-  }
 
   sheet.setColumnWidth(newCol, 90);
   ui.alert('Added room column "' + roomName + '".');
@@ -91,27 +67,6 @@ function findQuestionCol_(sheet, headerRow) {
     if (t.indexOf('description') >= 0 || t.indexOf('audit question') >= 0) return c + 1;
   }
   return 0;
-}
-
-/** First row (scanning the top of the sheet) containing the given text in any column. */
-function findRowByText_(sheet, lastRow, needle) {
-  var rows = Math.min(lastRow, 40);
-  var cols = Math.min(sheet.getLastColumn(), 12);
-  var vals = sheet.getRange(1, 1, rows, cols).getValues();
-  needle = needle.toLowerCase();
-  for (var r = 0; r < vals.length; r++) {
-    for (var c = 0; c < vals[r].length; c++) {
-      if (String(vals[r][c]).toLowerCase().indexOf(needle) >= 0) return r + 1;
-    }
-  }
-  return 0;
-}
-
-/** 1 -> A, 4 -> D, 27 -> AA. */
-function columnToLetter_(col) {
-  var s = '';
-  while (col > 0) { var m = (col - 1) % 26; s = String.fromCharCode(65 + m) + s; col = (col - m - 1) / 26; }
-  return s;
 }
 
 /**
