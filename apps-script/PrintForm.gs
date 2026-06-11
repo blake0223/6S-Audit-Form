@@ -28,6 +28,11 @@ function printForm() {
   var b64;
   var placeholderRows = findPlaceholderRows_(sheet);
 
+  // Stamp a unique Audit ID on the form so the printout is traceable.
+  var auditId = newAuditId_();
+  stampAuditId_(sheet, auditId);
+  SpreadsheetApp.flush();
+
   // Hide rows 4–5 and all unfilled placeholder rows only while the PDF is built.
   try {
     sheet.hideRows(SKIP_ROW_START, SKIP_ROW_COUNT);
@@ -62,7 +67,8 @@ function printForm() {
 
   var html = HtmlService.createHtmlOutput(
       '<body style="font-family:Arial;margin:0;padding:20px;text-align:center;color:#374151">'
-    + '<p style="margin:0 0 14px">Your blank <b>' + escapeHtml_(sheet.getName()) + '</b> form is ready.</p>'
+    + '<p style="margin:0 0 6px">Your <b>' + escapeHtml_(sheet.getName()) + '</b> form is ready.</p>'
+    + '<p style="margin:0 0 14px;font-size:13px">Audit ID: <b>' + escapeHtml_(auditId) + '</b></p>'
     + '<button id="b" style="font-size:15px;font-weight:bold;padding:10px 20px;border:0;'
     + 'border-radius:6px;background:#1F2A37;color:#fff;cursor:pointer">Open &amp; print form</button>'
     + '<p style="margin:14px 0 0;font-size:12px;color:#6B7280">Opens in a new tab — use its print button or Ctrl/⌘-P.</p>'

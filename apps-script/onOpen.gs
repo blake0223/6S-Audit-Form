@@ -8,6 +8,7 @@
  *   • addSectionRow()      → SectionRows.gs
  *   • removeSectionRow()   → SectionRows.gs
  *   • printForm()          → PrintForm.gs
+ *   • recordResults()      → RecordResults.gs
  */
 function onOpen() {
   SpreadsheetApp.getUi()
@@ -19,5 +20,6 @@ function onOpen() {
     .addItem('Remove selected row', 'removeSectionRow')
     .addSeparator()
     .addItem('Print blank form', 'printForm')
+    .addItem('Record audit results', 'recordResults')
     .addToUi();
 }
