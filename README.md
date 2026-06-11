@@ -7,7 +7,7 @@ A reusable **6S workplace-organization audit** toolkit (Sort · Set in Order · 
 ```
 apps-script/onOpen.gs                 Builds the "6S Audit Tools" menu on open
 apps-script/AddRoomColumn.gs          Add room column command (+ its header-detection helper)
-apps-script/DownloadPrintablePdf.gs   Printable-PDF export command (+ Drive folder helper)
+apps-script/PrintForm.gs              Print blank form command (fires the print dialog immediately)
 template/build_template.py            openpyxl generator that builds the workbook from scratch
 template/6S-Audit-Template.xlsx       The generated template (imports cleanly into Google Sheets)
 docs/                                 Notes & usage
@@ -34,12 +34,12 @@ python template/build_template.py    # writes 6S Audit Template.xlsx
 
 ## Google Sheets menu (`apps-script/`)
 
-Install: **Extensions ▸ Apps Script** → create one file per `.gs` here (`onOpen`, `AddRoomColumn`, `DownloadPrintablePdf`) and paste each in → Save → reload the sheet. Authorize on first run (Sheets + Drive + external request).
+Install: **Extensions ▸ Apps Script** → create one file per `.gs` here (`onOpen`, `AddRoomColumn`, `PrintForm`) and paste each in → Save → reload the sheet. Authorize on first run (Sheets + Drive + external request).
 
 Adds a **6S Audit Tools** menu:
 
 - **➕ Add room column** — prompts for a room name and inserts a 0–3 scoring column right of the questions (column C).
-- **🖨️ Download printable PDF** — exports the active tab as a clean, blank, portrait, fit-to-width PDF (saved to Drive ▸ `6S Audit PDFs`, with a download link).
+- **🖨️ Print blank form** — renders the active tab as a clean, blank, portrait, fit-to-width PDF and fires the browser's print dialog immediately (no download, no Drive file).
 
 ## Workflow
 
