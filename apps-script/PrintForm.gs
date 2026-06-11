@@ -1,7 +1,8 @@
 /**
  * PrintForm — renders the ACTIVE tab as a clean, blank, print-ready PDF
- * (portrait, fit-to-width, no gridlines) and fires the browser's print dialog
- * immediately. No download, no Drive file.
+ * (portrait, fit-to-width, no gridlines) and opens the browser's print dialog.
+ * It does NOT auto-print — you still choose the printer and confirm. No
+ * download, no Drive file.
  *
  * How it works: the PDF is fetched server-side, handed to a tiny dialog as a
  * same-origin blob URL, loaded in a hidden iframe, and printed on load.
@@ -34,7 +35,7 @@ function printForm() {
 
   var html = HtmlService.createHtmlOutput(
       '<body style="font-family:Arial;margin:0;padding:16px;font-size:14px;color:#374151">'
-    + 'Sending <b>' + escapeHtml_(sheet.getName()) + '</b> to your printer…'
+    + 'Opening the print dialog for <b>' + escapeHtml_(sheet.getName()) + '</b>…'
     + '<iframe id="pf" style="display:none"></iframe>'
     + '<script>'
     + 'var b64="' + b64 + '";'

@@ -39,7 +39,7 @@ Install: **Extensions ▸ Apps Script** → create one file per `.gs` here (`onO
 Adds a **6S Audit Tools** menu:
 
 - **➕ Add room column** — prompts for a room name and inserts a 0–3 scoring column right of the questions (column C).
-- **🖨️ Print blank form** — renders the active tab as a clean, blank, portrait, fit-to-width PDF and fires the browser's print dialog immediately (no download, no Drive file).
+- **🖨️ Print blank form** — renders the active tab as a clean, blank, portrait, fit-to-width PDF and opens the browser's print dialog (you confirm the print — no auto-print, no download).
 
 ## Workflow
 
