@@ -9,8 +9,8 @@
 function onOpen() {
   SpreadsheetApp.getUi()
     .createMenu('6S Audit Tools')
-    .addItem('➕  Add room column', 'addRoomColumn')
+    .addItem('Add room column', 'addRoomColumn')
     .addSeparator()
-    .addItem('🖨️  Print blank form', 'printForm')
+    .addItem('Print blank form', 'printForm')
     .addToUi();
 }
