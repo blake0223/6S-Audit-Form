@@ -1,11 +1,11 @@
 /**
  * PrintForm — renders the ACTIVE tab as a clean, blank, print-ready PDF
- * (portrait, fit-to-width, no gridlines) and opens the browser's print dialog.
- * It does NOT auto-print — you still choose the printer and confirm. No
- * download, no Drive file.
+ * (portrait, fit-to-width, no gridlines), shows it in a quick preview, and opens
+ * the browser's print dialog. A "Print this form" button is always available as a
+ * fallback if the dialog doesn't auto-open. No download, no Drive file.
  *
- * How it works: the PDF is fetched server-side, handed to a tiny dialog as a
- * same-origin blob URL, loaded in a hidden iframe, and printed on load.
+ * The PDF is fetched server-side, handed to the dialog as a same-origin blob URL,
+ * and loaded in a VISIBLE iframe (a hidden/display:none iframe can't be printed).
  *
  * Menu: 6S Audit Tools ▸ Print blank form   (wired up in onOpen.gs)
  */
@@ -34,25 +34,24 @@ function printForm() {
   var b64 = Utilities.base64Encode(pdf.getBytes());
 
   var html = HtmlService.createHtmlOutput(
-      '<body style="font-family:Arial;margin:0;padding:16px;font-size:14px;color:#374151">'
-    + 'Opening the print dialog for <b>' + escapeHtml_(sheet.getName()) + '</b>…'
-    + '<iframe id="pf" style="display:none"></iframe>'
+      '<style>'
+    + 'html,body{margin:0;height:100%;font-family:Arial}'
+    + '#bar{padding:8px;text-align:center;background:#1F2A37}'
+    + '#bar button{font-size:14px;font-weight:bold;padding:8px 18px;border:0;'
+    + 'border-radius:6px;background:#fff;color:#1F2A37;cursor:pointer}'
+    + '#f{border:0;width:100%;height:calc(100% - 46px);display:block}'
+    + '</style>'
+    + '<div id="bar"><button onclick="doPrint()">🖨️ Print this form</button></div>'
+    + '<iframe id="f"></iframe>'
     + '<script>'
     + 'var b64="' + b64 + '";'
     + 'var bytes=Uint8Array.from(atob(b64),function(c){return c.charCodeAt(0);});'
-    + 'var blobUrl=URL.createObjectURL(new Blob([bytes],{type:"application/pdf"}));'
-    + 'var f=document.getElementById("pf");'
-    + 'f.onload=function(){setTimeout(function(){f.contentWindow.focus();f.contentWindow.print();},250);};'
-    + 'f.src=blobUrl;'
-    + '</script>'
-    + '</body>')
-    .setWidth(320).setHeight(110);
-  SpreadsheetApp.getUi().showModalDialog(html, 'Print');
-}
-
-/** Minimal HTML escaping for the sheet name shown in the dialog. */
-function escapeHtml_(s) {
-  return String(s).replace(/[&<>"]/g, function (c) {
-    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
-  });
+    + 'var url=URL.createObjectURL(new Blob([bytes],{type:"application/pdf"}));'
+    + 'var f=document.getElementById("f");'
+    + 'function doPrint(){try{f.contentWindow.focus();f.contentWindow.print();}catch(e){window.print();}}'
+    + 'f.onload=function(){setTimeout(doPrint,500);};'
+    + 'f.src=url;'
+    + '</script>')
+    .setWidth(840).setHeight(660);
+  SpreadsheetApp.getUi().showModalDialog(html, 'Print — ' + sheet.getName());
 }
