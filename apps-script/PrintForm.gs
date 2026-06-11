@@ -1,11 +1,13 @@
 /**
  * PrintForm — renders the ACTIVE tab as a clean, blank, print-ready PDF
- * (portrait, fit-to-width, no gridlines), shows it in a quick preview, and opens
- * the browser's print dialog. A "Print this form" button is always available as a
- * fallback if the dialog doesn't auto-open. No download, no Drive file.
+ * (portrait, fit-to-width, no gridlines) and opens it in a NEW BROWSER TAB
+ * (the browser's PDF viewer), where you print it with the viewer's print button
+ * or Ctrl/Cmd-P. No download to Drive.
  *
- * The PDF is fetched server-side, handed to the dialog as a same-origin blob URL,
- * and loaded in a VISIBLE iframe (a hidden/display:none iframe can't be printed).
+ * Why a new tab and not auto-print inside the dialog: Chrome renders a PDF in its
+ * own (cross-origin) viewer, so printing it from inside an Apps Script dialog ends
+ * up printing the Sheets page itself, not the form. Opening the PDF in its own tab
+ * is the reliable way to print exactly the form.
  *
  * Menu: 6S Audit Tools ▸ Print blank form   (wired up in onOpen.gs)
  */
@@ -34,24 +36,25 @@ function printForm() {
   var b64 = Utilities.base64Encode(pdf.getBytes());
 
   var html = HtmlService.createHtmlOutput(
-      '<style>'
-    + 'html,body{margin:0;height:100%;font-family:Arial}'
-    + '#bar{padding:8px;text-align:center;background:#1F2A37}'
-    + '#bar button{font-size:14px;font-weight:bold;padding:8px 18px;border:0;'
-    + 'border-radius:6px;background:#fff;color:#1F2A37;cursor:pointer}'
-    + '#f{border:0;width:100%;height:calc(100% - 46px);display:block}'
-    + '</style>'
-    + '<div id="bar"><button onclick="doPrint()">🖨️ Print this form</button></div>'
-    + '<iframe id="f"></iframe>'
+      '<body style="font-family:Arial;margin:0;padding:20px;text-align:center;color:#374151">'
+    + '<p style="margin:0 0 14px">Your blank <b>' + escapeHtml_(sheet.getName()) + '</b> form is ready.</p>'
+    + '<button id="b" style="font-size:15px;font-weight:bold;padding:10px 20px;border:0;'
+    + 'border-radius:6px;background:#1F2A37;color:#fff;cursor:pointer">🖨  Open &amp; print form</button>'
+    + '<p style="margin:14px 0 0;font-size:12px;color:#6B7280">Opens in a new tab — use its print button or Ctrl/⌘-P.</p>'
     + '<script>'
-    + 'var b64="' + b64 + '";'
-    + 'var bytes=Uint8Array.from(atob(b64),function(c){return c.charCodeAt(0);});'
-    + 'var url=URL.createObjectURL(new Blob([bytes],{type:"application/pdf"}));'
-    + 'var f=document.getElementById("f");'
-    + 'function doPrint(){try{f.contentWindow.focus();f.contentWindow.print();}catch(e){window.print();}}'
-    + 'f.onload=function(){setTimeout(doPrint,500);};'
-    + 'f.src=url;'
-    + '</script>')
-    .setWidth(840).setHeight(660);
+    + 'var bytes=Uint8Array.from(atob("' + b64 + '"),function(c){return c.charCodeAt(0);});'
+    + 'var blobUrl=URL.createObjectURL(new Blob([bytes],{type:"application/pdf"}));'
+    + 'document.getElementById("b").addEventListener("click",function(){'
+    + 'window.open(blobUrl,"_blank");google.script.host.close();});'
+    + '</script>'
+    + '</body>')
+    .setWidth(360).setHeight(180);
   SpreadsheetApp.getUi().showModalDialog(html, 'Print — ' + sheet.getName());
+}
+
+/** Minimal HTML escaping for the sheet name shown in the dialog. */
+function escapeHtml_(s) {
+  return String(s).replace(/[&<>"]/g, function (c) {
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+  });
 }
