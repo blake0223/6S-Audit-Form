@@ -27,11 +27,14 @@ function addRoomColumn() {
   var headerRow = findHeaderRow_(sheet, lastRow);
   var firstItem = headerRow ? headerRow + 1 : 8;
 
-  // Header = room name.
+  // Header = room name, with a unique color per room (rotates through a palette).
   if (headerRow) {
+    var color = nextRoomColor_();
     sheet.getRange(headerRow, newCol)
       .setValue(roomName)
       .setFontWeight('bold')
+      .setFontColor(color.font)
+      .setBackground(color.bg)
       .setHorizontalAlignment('center')
       .setWrap(true);
   }
@@ -66,4 +69,26 @@ function findHeaderRow_(sheet, lastRow) {
     if (a === 'no.' || b === 'check item') return i + 1;
   }
   return 7; // default for this template
+}
+
+/**
+ * Return the next room header color, rotating through a fixed palette so
+ * consecutive rooms get distinct colors. The position is remembered per
+ * document, so reopening the sheet keeps the rotation going.
+ */
+function nextRoomColor_() {
+  var palette = [
+    { bg: '#1F4E79', font: '#FFFFFF' }, // blue
+    { bg: '#2E7D32', font: '#FFFFFF' }, // green
+    { bg: '#8E44AD', font: '#FFFFFF' }, // purple
+    { bg: '#C0392B', font: '#FFFFFF' }, // red
+    { bg: '#D68910', font: '#FFFFFF' }, // amber
+    { bg: '#16A085', font: '#FFFFFF' }, // teal
+    { bg: '#AD1457', font: '#FFFFFF' }, // magenta
+    { bg: '#2C3E50', font: '#FFFFFF' }  // slate
+  ];
+  var props = PropertiesService.getDocumentProperties();
+  var i = parseInt(props.getProperty('roomColorIndex') || '0', 10);
+  props.setProperty('roomColorIndex', String(i + 1));
+  return palette[i % palette.length];
 }
