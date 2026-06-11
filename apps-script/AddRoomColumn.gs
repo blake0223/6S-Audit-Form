@@ -41,6 +41,10 @@ function addRoomColumn() {
     .setWrap(true);
 
   sheet.setColumnWidth(newCol, 90);
+
+  // Refresh the Total Score column so each item row sums all room columns.
+  rebuildRoomTotals_(sheet);
+
   ui.alert('Added room column "' + roomName + '".');
 }
 
