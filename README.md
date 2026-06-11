@@ -5,11 +5,16 @@ A reusable **6S workplace-organization audit** toolkit (Sort · Set in Order · 
 ## What's here
 
 ```
-apps-script/Code.gs              Google Sheets "6S Audit Tools" menu (add-room column + printable-PDF export)
-template/build_template.py       openpyxl generator that builds the workbook from scratch
-template/6S-Audit-Template.xlsx  The generated template (imports cleanly into Google Sheets)
-docs/                            Notes & usage
+apps-script/onOpen.gs                 Builds the "6S Audit Tools" menu on open
+apps-script/AddRoomColumn.gs          Add room column command (+ its header-detection helper)
+apps-script/DownloadPrintablePdf.gs   Printable-PDF export command (+ Drive folder helper)
+template/build_template.py            openpyxl generator that builds the workbook from scratch
+template/6S-Audit-Template.xlsx       The generated template (imports cleanly into Google Sheets)
+docs/                                 Notes & usage
 ```
+
+Each Apps Script command lives in its own file; `.gs` files share one global
+scope, so the menu in `onOpen.gs` resolves the functions in the other files.
 
 ## The template
 
@@ -27,9 +32,9 @@ python -m pip install openpyxl
 python template/build_template.py    # writes 6S Audit Template.xlsx
 ```
 
-## Google Sheets menu (`apps-script/Code.gs`)
+## Google Sheets menu (`apps-script/`)
 
-Install: **Extensions ▸ Apps Script** → paste `Code.gs` → Save → reload the sheet. Authorize on first run (Sheets + Drive + external request).
+Install: **Extensions ▸ Apps Script** → create one file per `.gs` here (`onOpen`, `AddRoomColumn`, `DownloadPrintablePdf`) and paste each in → Save → reload the sheet. Authorize on first run (Sheets + Drive + external request).
 
 Adds a **6S Audit Tools** menu:
 
