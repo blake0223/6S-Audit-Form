@@ -5,8 +5,8 @@
  *
  * Per room it:
  *   • labels the header with the room name in a unique color,
- *   • drops a 0–3 dropdown on every item row (no blocking "must be 0–3" message),
- *   • writes a per-room Total Score =SUM(...) on the "Total Score" row (no validation).
+ *   • writes a per-room Total Score =SUM(...) on the "Total Score" row.
+ * (No data validation is applied — the 0–3 requirement is enforced elsewhere.)
  *
  * Menu: 6S Audit Tools ▸ Add room column   (wired up in onOpen.gs)
  */
@@ -42,29 +42,24 @@ function addRoomColumn() {
     .setHorizontalAlignment('center')
     .setWrap(true);
 
-  // 0–3 dropdown on item rows — non-blocking (no "must be 0–3" rejection message).
-  var rule = SpreadsheetApp.newDataValidation()
-    .requireValueInList([0, 1, 2, 3], true)
-    .setAllowInvalid(true)
-    .build();
-
+  // Find the item-row span (numeric column A) — only to size the Total Score sum.
+  // No data validation is applied here; the 0–3 rule is enforced elsewhere.
   var firstItem = 0, lastItem = 0;
   var colA = sheet.getRange(headerRow + 1, 1, lastRow - headerRow, 1).getValues();
   for (var i = 0; i < colA.length; i++) {
     if (typeof colA[i][0] === 'number' && colA[i][0] > 0) {
       var r = headerRow + 1 + i;
-      sheet.getRange(r, newCol).setDataValidation(rule).setHorizontalAlignment('center');
+      sheet.getRange(r, newCol).setHorizontalAlignment('center');
       if (!firstItem) firstItem = r;
       lastItem = r;
     }
   }
 
-  // Per-room Total Score on the "Total Score" row — summed, no validation.
+  // Per-room Total Score on the "Total Score" row.
   var totalRow = findRowByText_(sheet, lastRow, 'total score');
   if (totalRow && firstItem) {
     var L = columnToLetter_(newCol);
     sheet.getRange(totalRow, newCol)
-      .setDataValidation(null)
       .setHorizontalAlignment('center')
       .setFormula('=SUM(' + L + firstItem + ':' + L + lastItem + ')');
   }
