@@ -17,12 +17,25 @@
  * Runs automatically on Add room / Add row, and on demand from the menu.
  * Menu: 6S Audit Tools ▸ Rebuild room totals   (wired up in onOpen.gs)
  */
-function rebuildRoomTotals() {
-  var sheet = SpreadsheetApp.getActiveSheet();
+/** Menu launcher — pick a facility, then rebuild its totals/summary formulas. */
+function rebuildTotals() {
+  showToolDialog_({
+    title: 'Rebuild totals',
+    type: 'monthly',
+    button: 'Rebuild',
+    fields: [],
+    callback: 'rebuildTotalsFor'
+  });
+}
+
+/** Core — rebuild totals on the named Monthly Audit tab. */
+function rebuildTotalsFor(sheetName) {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(sheetName);
+  if (!sheet) throw new Error('Tab not found: ' + sheetName);
   var n = rebuildRoomTotals_(sheet);
-  SpreadsheetApp.getUi().alert(n > 0
-    ? 'Refreshed totals + summary formulas for ' + n + ' items on "' + sheet.getName() + '".'
-    : 'No audit items found on this tab — open a facility Monthly Audit tab and try again.');
+  return n > 0
+    ? 'Refreshed totals + summary formulas (' + n + ' items) on ' + facilityLabel_(sheetName) + '.'
+    : 'No audit items found on ' + sheetName + '.';
 }
 
 /** Re-stamp the per-row totals and summary formulas. Returns item-row count. */

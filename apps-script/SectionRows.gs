@@ -1,67 +1,92 @@
 /**
- * SectionRows — add or remove item rows within a 6S section. The section acted on
- * is the one containing the active cell (the nearest "◆ SECTION" band above it).
- * After a change the section is renumbered (1, 2, 3 … restarting per section) and
- * the Total Score column is refreshed.
+ * SectionRows — add a grading item (row) to a 6S category, or remove a row.
  *
- * Menu: 6S Audit Tools ▸ Add row to section / Remove selected row
+ *  • Add grading item: pick the facility + the 6S category from a dialog; a new
+ *    row is added at the end of that category and the category is renumbered.
+ *  • Remove selected row: operates on the row your cursor is in (you must be on
+ *    the facility tab and have the row selected) — then renumbers that category.
+ *
+ * Menu: 6S Audit Tools ▸ Monthly audit ▸ Add grading item / Remove selected row
  */
 
-function addSectionRow() {
-  var ui = SpreadsheetApp.getUi();
-  var sheet = auditSheet_();
-  var lastRow = sheet.getLastRow();
-  var headerRow = findHeaderRow_(sheet, lastRow);
-  var activeRow = sheet.getActiveRange().getRow();
-  var b = sectionBounds_(sheet, activeRow, headerRow, lastRow);
-  if (!b) { ui.alert('Select a cell inside a 6S section first.'); return; }
-
-  // Insert after the active row when it's inside the section, else at section end.
-  var afterRow = (activeRow >= b.first && activeRow <= b.last) ? activeRow : b.last;
-  sheet.insertRowsAfter(afterRow, 1);
-  var newRow = afterRow + 1;
-
-  // Match the look of the row above it, then clear its contents.
-  var lastCol = sheet.getLastColumn();
-  sheet.getRange(afterRow, 1, 1, lastCol).copyTo(
-    sheet.getRange(newRow, 1, 1, lastCol), { formatOnly: true });
-  sheet.getRange(newRow, 1, 1, lastCol).clearContent();
-  sheet.setRowHeight(newRow, sheet.getRowHeight(afterRow));
-
-  renumberRange_(sheet, b.first, (b.last - b.first + 1) + 1); // +1 row added
-  rebuildRoomTotals_(sheet);
+/** Menu launcher — Add grading item. */
+function addGradingItem() {
+  showToolDialog_({
+    title: 'Add grading item',
+    type: 'monthly',
+    button: 'Add item',
+    fields: [
+      { id: 'section', label: '6S category', kind: 'select',
+        options: ['SORT', 'SET IN ORDER', 'SHINE', 'STANDARDIZE', 'SUSTAIN', 'SAFETY'] },
+      { id: 'name', label: 'Check item (optional)', kind: 'text', placeholder: 'e.g. Refrigerant cylinders secured' }
+    ],
+    callback: 'addGradingItemFor'
+  });
 }
 
+/** Core — add a grading item to the named tab's chosen category. */
+function addGradingItemFor(sheetName, section, name) {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(sheetName);
+  if (!sheet) throw new Error('Tab not found: ' + sheetName);
+  var want = String(section || '').trim().toLowerCase();
+  if (!want) throw new Error('Pick a 6S category.');
+
+  var lastRow = sheet.getLastRow();
+  var headerRow = findHeaderRow_(sheet, lastRow);
+
+  var band = 0;
+  for (var r = headerRow + 1; r <= lastRow; r++) {
+    var a = String(sheet.getRange(r, 1).getValue());
+    if (a.indexOf('◆') >= 0 && a.replace(/◆/g, '').trim().toLowerCase() === want) { band = r; break; }
+  }
+  if (!band) throw new Error('Category "' + section + '" not found on ' + sheetName + '.');
+
+  var end = lastRow;
+  for (var r2 = band + 1; r2 <= lastRow; r2++) {
+    if (String(sheet.getRange(r2, 1).getValue()).indexOf('◆') >= 0) { end = r2 - 1; break; }
+  }
+
+  sheet.insertRowsAfter(end, 1);
+  var newRow = end + 1, lastCol = sheet.getLastColumn();
+  sheet.getRange(end, 1, 1, lastCol).copyTo(sheet.getRange(newRow, 1, 1, lastCol), { formatOnly: true });
+  sheet.getRange(newRow, 1, 1, lastCol).clearContent();
+  sheet.setRowHeight(newRow, sheet.getRowHeight(end));
+
+  if (String(name || '').trim()) {
+    var checkCol = Math.max((findQuestionCol_(sheet, headerRow) || QUESTION_COL) - 1, 1);
+    sheet.getRange(newRow, checkCol).setValue(String(name).trim());
+  }
+
+  renumberRange_(sheet, band + 1, (end - band) + 1); // old item count + 1
+  rebuildRoomTotals_(sheet);
+  return 'Added a grading item to ' + want.toUpperCase() + ' on ' + facilityLabel_(sheetName) + '.';
+}
+
+/** Remove the row your cursor is in (must be an item row inside a 6S category). */
 function removeSectionRow() {
   var ui = SpreadsheetApp.getUi();
-  var sheet = auditSheet_();
+  var sheet = SpreadsheetApp.getActiveSheet();
   var lastRow = sheet.getLastRow();
   var headerRow = findHeaderRow_(sheet, lastRow);
   var activeRow = sheet.getActiveRange().getRow();
   var b = sectionBounds_(sheet, activeRow, headerRow, lastRow);
   if (!b || activeRow < b.first || activeRow > b.last) {
-    ui.alert('Select an item row inside a 6S section to remove.'); return;
+    ui.alert('Select an item row inside a 6S category (on the facility tab) to remove.');
+    return;
   }
-  if (b.last <= b.first) { ui.alert('A section must keep at least one row.'); return; }
+  if (b.last <= b.first) { ui.alert('A category must keep at least one row.'); return; }
 
   sheet.deleteRow(activeRow);
-  renumberRange_(sheet, b.first, (b.last - b.first + 1) - 1); // -1 row removed
+  renumberRange_(sheet, b.first, (b.last - b.first + 1) - 1);
   rebuildRoomTotals_(sheet);
 }
 
 /* ---------- helpers ---------- */
 
-function auditSheet_() {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  return ss.getSheetByName(AUDIT_SHEET_NAME) || ss.getActiveSheet();
-}
-
-/** True if column A of the row holds a "◆ …" section band. */
 function isBand_(sheet, r) {
   return String(sheet.getRange(r, 1).getValue()).indexOf('◆') >= 0;
 }
 
-/** Bounds of the section containing `row`: { band, first, last }, or null. */
 function sectionBounds_(sheet, row, headerRow, lastRow) {
   if (row <= headerRow) return null;
   var band = 0;
@@ -72,7 +97,6 @@ function sectionBounds_(sheet, row, headerRow, lastRow) {
   return { band: band, first: band + 1, last: end };
 }
 
-/** Write 1, 2, 3 … into column A for `count` rows starting at `first` (numeric). */
 function renumberRange_(sheet, first, count) {
   if (count <= 0) return;
   var nums = [];

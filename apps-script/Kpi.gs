@@ -49,6 +49,7 @@ function appendMonthlyAuditRow_(o) {
     cell.setValue(frac).setNumberFormat('0.00%');
   }
 
+  putVal('facility', o.facility);
   putVal('audit id', o.id);
   putVal('date completed', o.date);
   putVal('result', o.result);

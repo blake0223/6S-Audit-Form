@@ -1,25 +1,31 @@
 /**
- * RecordResults — submit the scores typed into the room columns to the KPI Data
- * tab's "Monthly Audit" block. Generates one Audit ID per submission and writes a
- * single row: Audit ID, Date Completed, Result, Average Room Score (%),
- * Total Room Score (raw points), and each section's score (%).
+ * RecordResults — pick a facility, then submit the scores typed into that
+ * facility's Monthly Audit room columns to the KPI Data tab's "Monthly Audit"
+ * block. Generates one Audit ID per submission and writes a single row:
+ * Facility, Audit ID, Date Completed, Result, Average Room Score (%),
+ * Total Room Score (raw), and each section's score (%).
  *
- * Definitions:
- *   • Total Room Score   = sum of every room's scores (matches the row-6 total).
- *   • Average Room Score = average of the per-room score percentages.
- *   • <Section> Score    = section points ÷ section max, across all rooms.
- *   • Result             = PASS if overall ≥ 67% and no zeros, else FAIL.
- *
- * Workflow: type 0–3 into the room columns on the sheet, then run this.
- *
- * Menu: 6S Audit Tools ▸ Record audit results   (wired up in onOpen.gs)
+ * Menu: 6S Audit Tools ▸ Record audit results
  */
-function recordResults() {
-  var ui = SpreadsheetApp.getUi();
-  var sheet = auditSheet_();
-  var layout = getAuditLayout_();
-  if (!layout.rooms.length) { ui.alert('No room columns found on the audit sheet.'); return; }
-  if (!layout.items.length) { ui.alert('No audit items found.'); return; }
+
+/** Menu launcher — opens the facility picker. */
+function recordAudit() {
+  showToolDialog_({
+    title: 'Record audit results',
+    type: 'monthly',
+    button: 'Record',
+    fields: [],
+    callback: 'recordResultsFor'
+  });
+}
+
+/** Core — record the named facility's Monthly Audit into KPI Data. */
+function recordResultsFor(sheetName) {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(sheetName);
+  if (!sheet) throw new Error('Tab not found: ' + sheetName);
+  var layout = getAuditLayout_(sheet);
+  if (!layout.rooms.length) throw new Error('No location columns found on ' + sheetName + '.');
+  if (!layout.items.length) throw new Error('No audit items found on ' + sheetName + '.');
 
   var firstRow = layout.items[0].row;
   var lastItemRow = layout.items[layout.items.length - 1].row;
@@ -45,7 +51,7 @@ function recordResults() {
     });
   });
 
-  if (!scoredCells) { ui.alert('No scores found. Type 0–3 into the room columns first, then record.'); return; }
+  if (!scoredCells) throw new Error('No scores found on ' + sheetName + ' — type 0–3 into the location columns first.');
 
   var roomPcts = [];
   layout.rooms.forEach(function (rm) {
@@ -64,20 +70,18 @@ function recordResults() {
 
   var id = newAuditId_();
   var tz = SpreadsheetApp.getActiveSpreadsheet().getSpreadsheetTimeZone();
-  var date = Utilities.formatDate(new Date(), tz, 'yyyy-MM-dd');
+  appendMonthlyAuditRow_({
+    facility: facilityLabel_(sheetName), id: id,
+    date: Utilities.formatDate(new Date(), tz, 'yyyy-MM-dd'),
+    result: result, avg: avg, total: total, sections: sections
+  });
 
-  appendMonthlyAuditRow_({ id: id, date: date, result: result, avg: avg, total: total, sections: sections });
-
-  ui.alert('Recorded to KPI Data\n\n'
-    + 'Audit ID:  ' + id + '\n'
-    + 'Result:  ' + result + '\n'
-    + 'Average Room Score:  ' + (Math.round(avg * 1000) / 10) + '%\n'
-    + 'Total Room Score:  ' + total);
+  return 'Recorded ' + facilityLabel_(sheetName) + ' — ' + result
+    + ' (' + (Math.round(avg * 1000) / 10) + '%). Audit ID ' + id + '.';
 }
 
 /** Read the audit sheet structure: rooms (name, col) and items (row, section). */
-function getAuditLayout_() {
-  var sheet = auditSheet_();
+function getAuditLayout_(sheet) {
   var lastRow = sheet.getLastRow();
   var lastCol = sheet.getLastColumn();
   var headerRow = findHeaderRow_(sheet, lastRow);
@@ -86,7 +90,7 @@ function getAuditLayout_() {
 
   var hdr = sheet.getRange(headerRow, 1, 1, lastCol).getValues()[0];
   var rooms = [];
-  for (var idx = qCol; idx <= totalCol - 2; idx++) {     // columns between questions and total
+  for (var idx = qCol; idx <= totalCol - 2; idx++) {
     var name = String(hdr[idx]).trim();
     if (name) rooms.push({ name: name, col: idx + 1 });
   }
