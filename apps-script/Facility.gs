@@ -30,7 +30,7 @@ function showToolDialog_(cfg) {
   }
   var html = HtmlService.createHtmlOutput(buildToolHtml_(cfg, tabs))
     .setWidth(400).setHeight(cfg.height || 250);
-  ui.showModalDialog(html, cfg.title);
+  ui.showModelessDialog(html, cfg.title);
 }
 
 function buildToolHtml_(cfg, tabs) {
@@ -67,7 +67,7 @@ function buildToolHtml_(cfg, tabs) {
     + '.withSuccessHandler(function(m){document.getElementById("msg").textContent=m||"Done.";setTimeout(google.script.host.close,1300);})'
     + '.withFailureHandler(function(e){b.disabled=false;var m=(e&&e.message)||"";'
     + 'document.getElementById("msg").textContent=/authoriz/i.test(m)'
-    + '?"Run 6S Audit Tools \\u25b8 Enable tools (first-time setup) once, then try again.":"Error: "+m;})'
+    + '?"Permission needed: reload the sheet, run this tool, and approve the prompt that appears.":"Error: "+m;})'
     + '.runTool(CB,fac,f);});'
     + '</script>';
 }
@@ -80,14 +80,13 @@ function buildToolHtml_(cfg, tabs) {
  */
 function ensureAuthorized_() {
   var props = PropertiesService.getScriptProperties();
-  if (props.getProperty('authChecked')) return;
+  if (props.getProperty('authChecked2')) return;
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var stale = ss.getSheetByName('_6s_auth_check');
   if (stale) ss.deleteSheet(stale);
   var tmp = ss.insertSheet('_6s_auth_check');
   ss.deleteSheet(tmp);
-  ScriptApp.getOAuthToken();
-  props.setProperty('authChecked', '1');
+  props.setProperty('authChecked2', '1');
 }
 
 /**

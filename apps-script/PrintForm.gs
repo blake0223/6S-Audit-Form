@@ -35,7 +35,7 @@ function printForm() {
   }
 
   var html = HtmlService.createHtmlOutput(buildPrintHtml_(facilities)).setWidth(390).setHeight(250);
-  SpreadsheetApp.getUi().showModalDialog(html, 'Print blank form');
+  SpreadsheetApp.getUi().showModelessDialog(html, 'Print blank form');
 }
 
 /** Build the PDF for one tab and return it base64-encoded. Called from the dialog. */
@@ -103,7 +103,7 @@ function buildPrintHtml_(facilities) {
     + 'if(w){w.location=url;}else{window.open(url,"_blank");}google.script.host.close();})'
     + '.withFailureHandler(function(e){if(w){w.close();}b.disabled=false;var m=(e&&e.message)||"";'
     + 'document.getElementById("msg").textContent=/authoriz/i.test(m)'
-    + '?"Run 6S Audit Tools \\u25b8 Enable tools (first-time setup) once, then try again.":"Error: "+m;})'
+    + '?"Permission needed: reload the sheet, run this tool, and approve the prompt that appears.":"Error: "+m;})'
     + '.makeFormPdf(tab,type());});'
     + '</script>';
 }

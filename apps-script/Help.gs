@@ -41,5 +41,5 @@ function showHelp() {
     + 'then run the tool again. Each person does this once.</p>'
     + '</div>')
     .setWidth(470).setHeight(440);
-  SpreadsheetApp.getUi().showModalDialog(html, 'How to use the Hickory 6S Audit Forms');
+  SpreadsheetApp.getUi().showModelessDialog(html, 'How to use the Hickory 6S Audit Forms');
 }
