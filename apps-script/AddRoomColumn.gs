@@ -1,11 +1,12 @@
 /**
- * AddRoomColumn — inserts an individual scoring column for a new room,
- * immediately to the right of the questions column. The question column is found
- * by HEADER TEXT (not a fixed letter) so it keeps working as columns shift right.
+ * AddRoomColumn — inserts a scoring column for a new room at the RIGHT end of the
+ * room block (just left of the Total Score column). Inserting there is INSIDE the
+ * "Audit Location Scores" merged band, so the band extends over the new column —
+ * inserting at the far-left edge of a merge would leave the new column outside it.
  *
- * It sets the new column header to the room name in a unique rotating color.
- * No data validation and no totals are added — each room column is simply its own
- * 0–3 scoring column (the 0–3 rule is enforced elsewhere).
+ * The neighbouring room column is copied wholesale so the new room inherits the
+ * merges, the Score % formula in the band, and all formatting; the per-item score
+ * cells are then blanked. The header gets the room name in a unique rotating color.
  *
  * Menu: 6S Audit Tools ▸ Add room column   (wired up in onOpen.gs)
  */
@@ -23,14 +24,33 @@ function addRoomColumn() {
   var roomName = resp.getResponseText().trim();
   if (!roomName) { ui.alert('No room name entered — nothing added.'); return; }
 
-  var headerRow   = findHeaderRow_(sheet, sheet.getLastRow());
-  var questionCol = findQuestionCol_(sheet, headerRow) || QUESTION_COL;
+  var lastRow = sheet.getLastRow();
+  var headerRow = findHeaderRow_(sheet, lastRow);
+  var qCol = findQuestionCol_(sheet, headerRow) || QUESTION_COL;
+  var totalCol = findColByHeader_(sheet, headerRow, 'total score');
+  if (!totalCol || totalCol <= qCol + 1) {
+    ui.alert('Could not find the room block — need a "Total Score" column to the right of the rooms.');
+    return;
+  }
 
-  // New blank scoring column right of the questions column.
-  sheet.insertColumnsAfter(questionCol, 1);
-  var newCol = questionCol + 1;
+  // Insert just LEFT of the Total Score column (inside the merged band so it extends).
+  sheet.insertColumnsBefore(totalCol, 1);
+  var newCol = totalCol;     // the inserted column
+  var srcCol = newCol - 1;   // previous right-most room — copied as the template
 
-  // Header = room name, in a unique rotating color.
+  // Copy the neighbour room column wholesale (format + Score % formula + merges),
+  // then blank the per-item score cells so the new room starts empty.
+  sheet.getRange(1, srcCol, lastRow, 1).copyTo(sheet.getRange(1, newCol, lastRow, 1));
+  sheet.setColumnWidth(newCol, sheet.getColumnWidth(srcCol));
+
+  var colA = sheet.getRange(headerRow + 1, 1, lastRow - headerRow, 1).getValues();
+  for (var i = 0; i < colA.length; i++) {
+    if (typeof colA[i][0] === 'number' && colA[i][0] > 0) {
+      sheet.getRange(headerRow + 1 + i, newCol).clearContent();
+    }
+  }
+
+  // Name + colour the header.
   var color = nextRoomColor_();
   sheet.getRange(headerRow, newCol)
     .setValue(roomName)
@@ -40,11 +60,7 @@ function addRoomColumn() {
     .setHorizontalAlignment('center')
     .setWrap(true);
 
-  sheet.setColumnWidth(newCol, 90);
-
-  // Refresh the Total Score column so each item row sums all room columns.
   rebuildRoomTotals_(sheet);
-
   ui.alert('Added room column "' + roomName + '".');
 }
 
