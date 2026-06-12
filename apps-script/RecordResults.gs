@@ -1,8 +1,14 @@
 /**
- * RecordResults — submit the scores currently typed into the room columns to the
- * KPI Data tab. Generates a single Audit ID for the submission and appends one
- * summary row per room that has scores: Audit ID, Date, Location, Room, Total,
- * Max, Score %, # of Zeros, Result.
+ * RecordResults — submit the scores typed into the room columns to the KPI Data
+ * tab's "Monthly Audit" block. Generates one Audit ID per submission and writes a
+ * single row: Audit ID, Date Completed, Result, Average Room Score (%),
+ * Total Room Score (raw points), and each section's score (%).
+ *
+ * Definitions:
+ *   • Total Room Score   = sum of every room's scores (matches the row-6 total).
+ *   • Average Room Score = average of the per-room score percentages.
+ *   • <Section> Score    = section points ÷ section max, across all rooms.
+ *   • Result             = PASS if overall ≥ 67% and no zeros, else FAIL.
  *
  * Workflow: type 0–3 into the room columns on the sheet, then run this.
  *
@@ -18,43 +24,58 @@ function recordResults() {
   var firstRow = layout.items[0].row;
   var lastItemRow = layout.items[layout.items.length - 1].row;
   var span = lastItemRow - firstRow + 1;
+  var firstRoomCol = layout.rooms[0].col;
+  var nRoomCols = layout.rooms[layout.rooms.length - 1].col - firstRoomCol + 1;
+  var block = sheet.getRange(firstRow, firstRoomCol, span, nRoomCols).getValues();
+
+  var total = 0, scoredCells = 0, zeros = 0;
+  var roomAgg = {}, secAgg = {};
+  layout.rooms.forEach(function (rm) { roomAgg[rm.col] = { sum: 0, scored: 0 }; });
+
+  layout.items.forEach(function (it) {
+    if (!secAgg[it.section]) secAgg[it.section] = { sum: 0, scored: 0 };
+    layout.rooms.forEach(function (rm) {
+      var v = block[it.row - firstRow][rm.col - firstRoomCol];
+      if (v === '' || v === null) return;
+      v = Number(v);
+      if (isNaN(v)) return;
+      total += v; scoredCells++; if (v === 0) zeros++;
+      roomAgg[rm.col].sum += v; roomAgg[rm.col].scored++;
+      secAgg[it.section].sum += v; secAgg[it.section].scored++;
+    });
+  });
+
+  if (!scoredCells) { ui.alert('No scores found. Type 0–3 into the room columns first, then record.'); return; }
+
+  var roomPcts = [];
+  layout.rooms.forEach(function (rm) {
+    var a = roomAgg[rm.col];
+    if (a.scored > 0) roomPcts.push(a.sum / (a.scored * 3));
+  });
+  var avg = roomPcts.reduce(function (s, x) { return s + x; }, 0) / roomPcts.length;
+  var overall = total / (scoredCells * 3);
+  var result = (overall >= 0.67 && zeros === 0) ? 'PASS' : 'FAIL';
+
+  var sections = {};
+  Object.keys(secAgg).forEach(function (sec) {
+    var a = secAgg[sec];
+    sections[sec] = a.scored > 0 ? a.sum / (a.scored * 3) : '';
+  });
 
   var id = newAuditId_();
   var tz = SpreadsheetApp.getActiveSpreadsheet().getSpreadsheetTimeZone();
   var date = Utilities.formatDate(new Date(), tz, 'yyyy-MM-dd');
 
-  var submitted = [];
-  for (var k = 0; k < layout.rooms.length; k++) {
-    var room = layout.rooms[k];
-    var colVals = sheet.getRange(firstRow, room.col, span, 1).getValues();
-    var total = 0, zeros = 0, scored = 0;
-    for (var i = 0; i < layout.items.length; i++) {
-      var v = colVals[layout.items[i].row - firstRow][0];
-      if (v === '' || v === null) continue;
-      v = Number(v);
-      if (isNaN(v)) continue;
-      total += v; scored++;
-      if (v === 0) zeros++;
-    }
-    if (!scored) continue; // skip rooms with nothing entered
-    var max = scored * 3;
-    var pct = Math.round(total / max * 1000) / 10;
-    var result = (pct >= 67 && zeros === 0) ? 'PASS' : 'FAIL';
-    appendKpiRow_({
-      id: id, date: date, location: layout.location, room: room.name,
-      total: total, max: max, pct: pct, zeros: zeros, result: result
-    });
-    submitted.push(room.name + ': ' + total + '/' + max + ' (' + pct + '%) ' + result);
-  }
+  appendMonthlyAuditRow_({ id: id, date: date, result: result, avg: avg, total: total, sections: sections });
 
-  if (!submitted.length) {
-    ui.alert('No scores found. Type 0–3 into the room columns first, then record.');
-    return;
-  }
-  ui.alert('Recorded to KPI Data\n\nAudit ID:  ' + id + '\n\n' + submitted.join('\n'));
+  ui.alert('Recorded to KPI Data\n\n'
+    + 'Audit ID:  ' + id + '\n'
+    + 'Result:  ' + result + '\n'
+    + 'Average Room Score:  ' + (Math.round(avg * 1000) / 10) + '%\n'
+    + 'Total Room Score:  ' + total);
 }
 
-/** Read the audit sheet structure: rooms, items (by section), max, location. */
+/** Read the audit sheet structure: rooms (name, col) and items (row, section). */
 function getAuditLayout_() {
   var sheet = auditSheet_();
   var lastRow = sheet.getLastRow();
@@ -77,22 +98,5 @@ function getAuditLayout_() {
     if (String(a).indexOf('◆') >= 0) { section = String(a).replace(/◆/g, '').trim(); continue; }
     if (typeof a === 'number' && a > 0) items.push({ row: headerRow + 1 + i, section: section });
   }
-  return { rooms: rooms, items: items, max: items.length * 3, location: readLocation_() };
-}
-
-/** Best-effort read of the Location value from the top of the audit sheet. */
-function readLocation_() {
-  var sheet = auditSheet_();
-  var rows = Math.max(Math.min(sheet.getLastRow(), 12), 3);
-  var cols = Math.max(Math.min(sheet.getLastColumn(), 12), 8);
-  var vals = sheet.getRange(1, 1, rows, cols).getValues();
-  for (var r = 0; r < vals.length; r++) {
-    for (var c = 0; c < vals[r].length; c++) {
-      if (/^location/i.test(String(vals[r][c]).trim()) && c + 1 < cols) {
-        var right = String(vals[r][c + 1]).trim();
-        if (right) return right;
-      }
-    }
-  }
-  return '';
+  return { rooms: rooms, items: items };
 }
