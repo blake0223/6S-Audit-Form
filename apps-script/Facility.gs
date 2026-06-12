@@ -60,14 +60,29 @@ function buildToolHtml_(cfg, tabs) {
     + '<script>'
     + 'var IDS=' + JSON.stringify(ids) + ',CB=' + JSON.stringify(cfg.callback) + ';'
     + 'document.getElementById("go").addEventListener("click",function(){'
-    + 'var args=[document.getElementById("_fac").value];'
-    + 'IDS.forEach(function(id){args.push(document.getElementById(id).value);});'
+    + 'var fac=document.getElementById("_fac").value;var f={};'
+    + 'IDS.forEach(function(id){f[id]=document.getElementById(id).value;});'
     + 'var b=this;b.disabled=true;document.getElementById("msg").textContent="Working…";'
-    + 'var r=google.script.run'
+    + 'google.script.run'
     + '.withSuccessHandler(function(m){document.getElementById("msg").textContent=m||"Done.";setTimeout(google.script.host.close,1300);})'
-    + '.withFailureHandler(function(e){b.disabled=false;document.getElementById("msg").textContent="Error: "+e.message;});'
-    + 'r[CB].apply(r,args);});'
+    + '.withFailureHandler(function(e){b.disabled=false;document.getElementById("msg").textContent="Error: "+e.message;})'
+    + '.runTool(CB,fac,f);});'
     + '</script>';
+}
+
+/**
+ * Dispatcher called by every picker dialog (avoids google.script.run[name].apply,
+ * which is unreliable in the dialog sandbox). Routes to the right core function.
+ */
+function runTool(cb, sheetName, f) {
+  f = f || {};
+  switch (cb) {
+    case 'addLocationFor':      return addLocationFor(sheetName, f.name);
+    case 'addGradingItemFor':   return addGradingItemFor(sheetName, f.section, f.name);
+    case 'addChecklistItemFor': return addChecklistItemFor(sheetName, f.name);
+    case 'recordResultsFor':    return recordResultsFor(sheetName);
+    default: throw new Error('Unknown tool: ' + cb);
+  }
 }
 
 function escHtml_(s) {
