@@ -20,7 +20,7 @@ function printForm() {
     var n = s.getName();
     var isMonthly = /monthly audit/i.test(n);
     var isChecklist = /checklist/i.test(n);
-    if (!isMonthly && !isChecklist) return;
+    if ((!isMonthly && !isChecklist) || EXCLUDE_TABS.test(n)) return;
     var key = String(n).trim().split(/\s+/)[0].toUpperCase();
     if (!byKey[key]) byKey[key] = { label: facilityLabel_(n), monthly: null, checklist: null };
     if (isMonthly) { byKey[key].monthly = s.getSheetId(); byKey[key].label = facilityLabel_(n); }

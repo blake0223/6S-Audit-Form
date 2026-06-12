@@ -6,19 +6,20 @@
  * Menu: 6S Audit Tools ▸ Monthly audit ▸ Add grading item
  */
 
-/** Menu launcher — native facility + category pickers, then optional item name. */
+/** Menu launcher — facility dropdown + category dropdown + optional item name. */
 function addGradingItem() {
-  var ui = SpreadsheetApp.getUi();
-  var sheetName = pickFacility_('monthly', 'Add grading item');
-  if (!sheetName) return;
-  var section = pickOption_(['SORT', 'SET IN ORDER', 'SHINE', 'STANDARDIZE', 'SUSTAIN', 'SAFETY'],
-    'Add grading item — 6S category');
-  if (!section) return;
-  var resp = ui.prompt('Add grading item',
-    'Check item name (optional — leave blank to fill in later):', ui.ButtonSet.OK_CANCEL);
-  if (resp.getSelectedButton() !== ui.Button.OK) return;
-  try { ui.alert(addGradingItemFor(sheetName, section, resp.getResponseText().trim())); }
-  catch (e) { ui.alert('Error: ' + e.message); }
+  ensureAuthorized_();
+  showToolDialog_({
+    title: 'Add grading item',
+    type: 'monthly',
+    button: 'Add item',
+    fields: [
+      { id: 'section', label: '6S category', kind: 'select',
+        options: ['SORT', 'SET IN ORDER', 'SHINE', 'STANDARDIZE', 'SUSTAIN', 'SAFETY'] },
+      { id: 'name', label: 'Check item (optional)', kind: 'text', placeholder: 'e.g. Refrigerant cylinders secured' }
+    ],
+    callback: 'addGradingItemFor'
+  });
 }
 
 /** Core — add a grading item to the named tab's chosen category. */
