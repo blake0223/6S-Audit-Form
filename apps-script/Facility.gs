@@ -79,14 +79,18 @@ function buildToolHtml_(cfg, tabs) {
  * created and deleted). Guarded so the write only happens once.
  */
 function ensureAuthorized_() {
-  var props = PropertiesService.getScriptProperties();
-  if (props.getProperty('authChecked2')) return;
+  // PER-USER flag (UserProperties), not script-wide — so every user's first click
+  // actually runs the write below, which forces Google's one-time "edit this
+  // spreadsheet" prompt in this (promptable) menu context. A script-wide flag
+  // would skip the prompt for everyone after the first person.
+  var up = PropertiesService.getUserProperties();
+  if (up.getProperty('authedV3')) return;
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var stale = ss.getSheetByName('_6s_auth_check');
   if (stale) ss.deleteSheet(stale);
   var tmp = ss.insertSheet('_6s_auth_check');
   ss.deleteSheet(tmp);
-  props.setProperty('authChecked2', '1');
+  up.setProperty('authedV3', '1');
 }
 
 /**
