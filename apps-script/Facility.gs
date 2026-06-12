@@ -1,16 +1,13 @@
 /**
- * Facility — the facility-picker dialog (dropdown) shared by the menu tools, plus
- * the one-time authorization trigger.
+ * Facility — facility selection shared by the action tools, using NATIVE prompts.
  *
- * Now that the project no longer uses UrlFetch (the "external service" permission),
- * the only permission the tools need is "edit this spreadsheet" — so the dialog's
- * google.script.run calls work once that single consent is granted. ensureAuthorized_
- * triggers that consent in the menu context (where Google CAN prompt) before the
- * dialog opens.
+ * Why native: the action tools edit the sheet on the server. An HTML dropdown
+ * dialog would have to call the server via google.script.run, which can't trigger
+ * Google's permission prompt and fails with "Authorization is required." Native
+ * prompts run in the menu context, which works. (Print keeps an HTML dropdown
+ * because it never calls the server — the browser fetches the PDF.)
  *
- * Facility tabs are recognised by name (Monthly Audit vs Checklist); setup/master
- * tabs (Safety Setup, Initiation) are excluded. Labels come from facilityLabel_
- * (PrintForm.gs).
+ * Setup/master tabs (Safety Setup, Initiation, etc.) are excluded from the lists.
  */
 
 var EXCLUDE_TABS = /initiation|safety setup|instruction|overview|kpi data/i;
@@ -22,89 +19,37 @@ function listFacilityTabs_(type) {
     .map(function (s) { return { name: s.getName(), label: facilityLabel_(s.getName()) }; });
 }
 
-/** First tool use: a reversible write forces the one-time "edit this sheet" prompt. */
-function ensureAuthorized_() {
-  var up = PropertiesService.getUserProperties();
-  if (up.getProperty('authedV3')) return;
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var stale = ss.getSheetByName('_6s_auth_check');
-  if (stale) ss.deleteSheet(stale);
-  var tmp = ss.insertSheet('_6s_auth_check');
-  ss.deleteSheet(tmp);
-  up.setProperty('authedV3', '1');
-}
-
-/**
- * Open a facility-picker dialog.
- *   cfg = { title, type:'monthly'|'checklist', button, callback,
- *           fields:[{id,label,kind:'text'|'select',options,placeholder}] }
- * On submit it calls runTool(callback, facilityTabName, fieldValues), shows the
- * returned message, then closes.
- */
-function showToolDialog_(cfg) {
+/** Native facility selection. Returns the chosen tab name, or null if cancelled. */
+function pickFacility_(type, title) {
   var ui = SpreadsheetApp.getUi();
-  var tabs = listFacilityTabs_(cfg.type);
+  var tabs = listFacilityTabs_(type);
   if (!tabs.length) {
-    ui.alert('No ' + (cfg.type === 'checklist' ? 'Weekly Checklist' : 'Monthly Audit') + ' tabs found.');
-    return;
+    ui.alert('No ' + (type === 'checklist' ? 'Weekly Checklist' : 'Monthly Audit') + ' tabs found.');
+    return null;
   }
-  var html = HtmlService.createHtmlOutput(buildToolHtml_(cfg, tabs))
-    .setWidth(400).setHeight(cfg.height || 250);
-  ui.showModelessDialog(html, cfg.title);
-}
-
-/** Dispatcher called by the dialog (avoids google.script.run[name].apply quirks). */
-function runTool(cb, sheetName, f) {
-  f = f || {};
-  switch (cb) {
-    case 'addLocationFor':      return addLocationFor(sheetName, f.name);
-    case 'addGradingItemFor':   return addGradingItemFor(sheetName, f.section, f.name);
-    case 'addChecklistItemFor': return addChecklistItemFor(sheetName, f.name);
-    case 'recordResultsFor':    return recordResultsFor(sheetName);
-    default: throw new Error('Unknown tool: ' + cb);
+  if (tabs.length === 1) return tabs[0].name;
+  var list = tabs.map(function (t, i) { return (i + 1) + ')  ' + t.label; }).join('\n');
+  var resp = ui.prompt(title + ' — choose facility',
+    'Type the number of the facility:\n\n' + list, ui.ButtonSet.OK_CANCEL);
+  if (resp.getSelectedButton() !== ui.Button.OK) return null;
+  var n = parseInt(resp.getResponseText().trim(), 10);
+  if (isNaN(n) || n < 1 || n > tabs.length) {
+    ui.alert('Please enter a number between 1 and ' + tabs.length + '.');
+    return null;
   }
+  return tabs[n - 1].name;
 }
 
-function buildToolHtml_(cfg, tabs) {
-  var fields = cfg.fields || [];
-  var fieldHtml = fields.map(function (f) {
-    if (f.kind === 'select') {
-      return '<div class="row"><label>' + escHtml_(f.label) + '</label><br><select id="' + f.id + '">'
-        + f.options.map(function (o) { return '<option>' + escHtml_(o) + '</option>'; }).join('')
-        + '</select></div>';
-    }
-    return '<div class="row"><label>' + escHtml_(f.label) + '</label><br><input id="' + f.id + '" type="text"'
-      + (f.placeholder ? ' placeholder="' + escAttr_(f.placeholder) + '"' : '') + '></div>';
-  }).join('');
-  var ids = fields.map(function (f) { return f.id; });
-
-  return ''
-    + '<style>body{font-family:Arial;margin:0;padding:16px;font-size:13px;color:#111827}h3{margin:0 0 12px}'
-    + '.row{margin-bottom:10px}label{font-weight:bold}select,input{width:100%;font-size:13px;padding:5px;box-sizing:border-box}'
-    + '#go{background:#1F2A37;color:#fff;border:0;border-radius:6px;padding:10px 18px;font-weight:bold;cursor:pointer}'
-    + '#msg{margin-top:10px;color:#6B7280}</style>'
-    + '<h3>' + escHtml_(cfg.title) + '</h3>'
-    + '<div class="row"><label>Facility</label><br><select id="_fac">'
-    + tabs.map(function (t) { return '<option value="' + escAttr_(t.name) + '">' + escHtml_(t.label) + '</option>'; }).join('')
-    + '</select></div>'
-    + fieldHtml
-    + '<button id="go">' + escHtml_(cfg.button || 'Apply') + '</button><div id="msg"></div>'
-    + '<script>'
-    + 'var IDS=' + JSON.stringify(ids) + ',CB=' + JSON.stringify(cfg.callback) + ';'
-    + 'document.getElementById("go").addEventListener("click",function(){'
-    + 'var fac=document.getElementById("_fac").value;var f={};'
-    + 'IDS.forEach(function(id){f[id]=document.getElementById(id).value;});'
-    + 'var b=this;b.disabled=true;document.getElementById("msg").textContent="Working…";'
-    + 'google.script.run'
-    + '.withSuccessHandler(function(m){document.getElementById("msg").textContent=m||"Done.";setTimeout(google.script.host.close,1300);})'
-    + '.withFailureHandler(function(e){b.disabled=false;document.getElementById("msg").textContent="Error: "+((e&&e.message)||e);})'
-    + '.runTool(CB,fac,f);});'
-    + '</script>';
+/** Native selection over a plain list of strings. Returns the choice or null. */
+function pickOption_(options, title) {
+  var ui = SpreadsheetApp.getUi();
+  var list = options.map(function (o, i) { return (i + 1) + ')  ' + o; }).join('\n');
+  var resp = ui.prompt(title, 'Type the number:\n\n' + list, ui.ButtonSet.OK_CANCEL);
+  if (resp.getSelectedButton() !== ui.Button.OK) return null;
+  var n = parseInt(resp.getResponseText().trim(), 10);
+  if (isNaN(n) || n < 1 || n > options.length) {
+    ui.alert('Please enter a number between 1 and ' + options.length + '.');
+    return null;
+  }
+  return options[n - 1];
 }
-
-function escHtml_(s) {
-  return String(s).replace(/[&<>"]/g, function (c) {
-    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
-  });
-}
-function escAttr_(s) { return escHtml_(s); }
