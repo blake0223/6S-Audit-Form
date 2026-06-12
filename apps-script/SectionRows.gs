@@ -1,12 +1,9 @@
 /**
- * SectionRows — add a grading item (row) to a 6S category, or remove a row.
+ * SectionRows — add a grading item (row) to a 6S category. Pick the facility + the
+ * 6S category from a dialog; a new row is added at the end of that category and the
+ * category is renumbered.
  *
- *  • Add grading item: pick the facility + the 6S category from a dialog; a new
- *    row is added at the end of that category and the category is renumbered.
- *  • Remove selected row: operates on the row your cursor is in (you must be on
- *    the facility tab and have the row selected) — then renumbers that category.
- *
- * Menu: 6S Audit Tools ▸ Monthly audit ▸ Add grading item / Remove selected row
+ * Menu: 6S Audit Tools ▸ Monthly audit ▸ Add grading item
  */
 
 /** Menu launcher — Add grading item. */
@@ -62,41 +59,9 @@ function addGradingItemFor(sheetName, section, name) {
   return 'Added a grading item to ' + want.toUpperCase() + ' on ' + facilityLabel_(sheetName) + '.';
 }
 
-/** Remove the row your cursor is in (must be an item row inside a 6S category). */
-function removeSectionRow() {
-  var ui = SpreadsheetApp.getUi();
-  var sheet = SpreadsheetApp.getActiveSheet();
-  var lastRow = sheet.getLastRow();
-  var headerRow = findHeaderRow_(sheet, lastRow);
-  var activeRow = sheet.getActiveRange().getRow();
-  var b = sectionBounds_(sheet, activeRow, headerRow, lastRow);
-  if (!b || activeRow < b.first || activeRow > b.last) {
-    ui.alert('Select an item row inside a 6S category (on the facility tab) to remove.');
-    return;
-  }
-  if (b.last <= b.first) { ui.alert('A category must keep at least one row.'); return; }
-
-  sheet.deleteRow(activeRow);
-  renumberRange_(sheet, b.first, (b.last - b.first + 1) - 1);
-  rebuildRoomTotals_(sheet);
-}
-
 /* ---------- helpers ---------- */
 
-function isBand_(sheet, r) {
-  return String(sheet.getRange(r, 1).getValue()).indexOf('◆') >= 0;
-}
-
-function sectionBounds_(sheet, row, headerRow, lastRow) {
-  if (row <= headerRow) return null;
-  var band = 0;
-  for (var r = row; r > headerRow; r--) { if (isBand_(sheet, r)) { band = r; break; } }
-  if (!band) return null;
-  var end = lastRow;
-  for (var r2 = band + 1; r2 <= lastRow; r2++) { if (isBand_(sheet, r2)) { end = r2 - 1; break; } }
-  return { band: band, first: band + 1, last: end };
-}
-
+/** Write 1, 2, 3 … into column A for `count` rows starting at `first`. */
 function renumberRange_(sheet, first, count) {
   if (count <= 0) return;
   var nums = [];
