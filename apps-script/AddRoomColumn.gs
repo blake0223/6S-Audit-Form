@@ -12,16 +12,17 @@
 
 var QUESTION_COL = 3; // fallback if the question header isn't found
 
-/** Menu launcher — opens the facility picker. */
+/** Menu launcher — native facility picker + name prompt. */
 function addLocation() {
-  ensureAuthorized_();
-  showToolDialog_({
-    title: 'Add location',
-    type: 'monthly',
-    button: 'Add location',
-    fields: [{ id: 'name', label: 'Location / area name', kind: 'text', placeholder: 'e.g. Parts Room' }],
-    callback: 'addLocationFor'
-  });
+  var ui = SpreadsheetApp.getUi();
+  var sheetName = pickFacility_('monthly', 'Add location');
+  if (!sheetName) return;
+  var resp = ui.prompt('Add location', 'Location / area name (e.g. Parts Room):', ui.ButtonSet.OK_CANCEL);
+  if (resp.getSelectedButton() !== ui.Button.OK) return;
+  var name = resp.getResponseText().trim();
+  if (!name) { ui.alert('No location name entered.'); return; }
+  try { ui.alert(addLocationFor(sheetName, name)); }
+  catch (e) { ui.alert('Error: ' + e.message); }
 }
 
 /** Core — add a location column to the named Monthly Audit tab. */

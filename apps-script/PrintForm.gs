@@ -13,7 +13,6 @@
  * Menu: 6S Audit Tools ▸ Print blank form
  */
 function printForm() {
-  ensureAuthorized_();
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var ssId = ss.getId();
   var byKey = {};
