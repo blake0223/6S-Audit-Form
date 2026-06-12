@@ -96,7 +96,7 @@ function getAuditLayout_() {
   for (var i = 0; i < data.length; i++) {
     var a = data[i][0];
     if (String(a).indexOf('◆') >= 0) { section = String(a).replace(/◆/g, '').trim(); continue; }
-    if (typeof a === 'number' && a > 0) items.push({ row: headerRow + 1 + i, section: section });
+    if (isItemNumber_(a)) items.push({ row: headerRow + 1 + i, section: section });
   }
   return { rooms: rooms, items: items };
 }

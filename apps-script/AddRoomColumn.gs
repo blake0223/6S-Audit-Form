@@ -45,7 +45,7 @@ function addRoomColumn() {
 
   var colA = sheet.getRange(headerRow + 1, 1, lastRow - headerRow, 1).getValues();
   for (var i = 0; i < colA.length; i++) {
-    if (typeof colA[i][0] === 'number' && colA[i][0] > 0) {
+    if (isItemNumber_(colA[i][0])) {
       sheet.getRange(headerRow + 1 + i, newCol).clearContent();
     }
   }
@@ -76,6 +76,13 @@ function findHeaderRow_(sheet, lastRow) {
     if (a === 'no.' || b === 'check item') return i + 1;
   }
   return 7; // default for this template
+}
+
+/** True if a column-A value is an item number — numeric (1) or "1.0"-style text. */
+function isItemNumber_(v) {
+  if (typeof v === 'number') return v > 0;
+  var s = String(v).trim();
+  return /^\d+(\.\d+)?$/.test(s) && parseFloat(s) > 0;
 }
 
 /** Find the question column by its header text ("description" / "audit question"). */

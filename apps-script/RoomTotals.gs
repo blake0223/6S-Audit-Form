@@ -41,7 +41,7 @@ function rebuildRoomTotals_(sheet) {
   var colA = sheet.getRange(headerRow + 1, 1, lastRow - headerRow, 1).getValues();
   var count = 0;
   for (var i = 0; i < colA.length; i++) {
-    if (typeof colA[i][0] === 'number' && colA[i][0] > 0) {
+    if (isItemNumber_(colA[i][0])) {
       var r = headerRow + 1 + i;
       var range = L1 + r + ':' + L2 + r;
       sheet.getRange(r, totalCol).setFormula('=IF(COUNT(' + range + ')=0,"-",SUM(' + range + '))');
