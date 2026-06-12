@@ -3,11 +3,12 @@
  * PDF in the browser.
  *
  * For the Monthly audit, the printout drops column A (No.), the Total Score column,
- * and rows 2–5 (the summary block). Those are non-rectangular, so we make a hidden
- * throwaway copy of the tab, delete those rows/columns ON THE COPY, and let the
- * browser fetch the copy's PDF. This runs in the menu context (no google.script.run)
- * and uses no UrlFetch — so the only permission needed is "edit this spreadsheet".
- * The copy is replaced on each print.
+ * and rows 2–5 (the summary block). Those are non-rectangular, so we make a
+ * throwaway "_print_tmp" copy of the tab, delete those rows/columns ON THE COPY,
+ * and the user clicks a link to fetch the copy's PDF. This runs in the menu context
+ * (no google.script.run) and uses no UrlFetch — so the only permission needed is
+ * "edit this spreadsheet". The copy is visible (hidden sheets don't export by gid)
+ * and is replaced on each print.
  *
  * Menu: 6S Audit Tools ▸ Print blank form
  */
@@ -24,12 +25,15 @@ function printForm() {
   catch (e) { ui.alert('Error: ' + e.message); return; }
 
   var html = HtmlService.createHtmlOutput(
-      '<body style="font-family:Arial;margin:0;padding:16px;font-size:13px;color:#374151">'
-    + 'Opening the print-ready PDF in a new tab…'
-    + '<script>window.open(' + JSON.stringify(url) + ',"_blank");'
-    + 'setTimeout(google.script.host.close,500);</script></body>')
-    .setWidth(300).setHeight(90);
-  ui.showModelessDialog(html, 'Print');
+      '<body style="font-family:Arial;margin:0;padding:22px 20px;text-align:center;color:#374151">'
+    + '<p style="font-size:13px;margin:0 0 16px">Your print-ready form is ready.</p>'
+    + '<a href="' + url + '" target="_blank" rel="noopener" '
+    + 'style="display:inline-block;background:#1F4E79;color:#fff;text-decoration:none;'
+    + 'padding:11px 20px;border-radius:6px;font-size:14px;font-weight:bold">Open PDF in new tab</a>'
+    + '<p style="font-size:11px;color:#9ca3af;margin:16px 0 0">Then use your browser’s Print or Download.</p>'
+    + '</body>')
+    .setWidth(300).setHeight(160);
+  ui.showModelessDialog(html, 'Print blank form');
 }
 
 /** Build the export URL, trimming a hidden copy for Monthly audits. */
@@ -50,7 +54,6 @@ function buildPrintUrl_(sheetName, type) {
     copy.deleteColumn(1);                       // column A (No.)
     copy.deleteRows(2, 4);                       // rows 2–5 (summary block)
 
-    copy.hideSheet();
     SpreadsheetApp.flush();
     gid = copy.getSheetId();
   } else {
