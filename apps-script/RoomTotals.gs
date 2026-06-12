@@ -1,8 +1,9 @@
 /**
  * RoomTotals — fills the "Total Score" column so that, for every item row, it
  * sums that row's room-score columns (all columns between the questions column
- * and the Total Score column). Runs automatically when a room is added, and can
- * be run on demand from the menu.
+ * and the Total Score column). The formula shows "-" until at least one room is
+ * scored: =IF(COUNT(rooms)=0,"-",SUM(rooms)). Runs automatically when a room or
+ * row is added, and can be run on demand from the menu.
  *
  * Menu: 6S Audit Tools ▸ Rebuild room totals   (wired up in onOpen.gs)
  */
@@ -42,7 +43,8 @@ function rebuildRoomTotals_(sheet) {
   for (var i = 0; i < colA.length; i++) {
     if (typeof colA[i][0] === 'number' && colA[i][0] > 0) {
       var r = headerRow + 1 + i;
-      sheet.getRange(r, totalCol).setFormula('=SUM(' + L1 + r + ':' + L2 + r + ')');
+      var range = L1 + r + ':' + L2 + r;
+      sheet.getRange(r, totalCol).setFormula('=IF(COUNT(' + range + ')=0,"-",SUM(' + range + '))');
       count++;
     }
   }
