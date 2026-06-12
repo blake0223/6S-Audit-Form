@@ -17,15 +17,8 @@ function authorize() {
   PropertiesService.getDocumentProperties().getProperty('x');
   PropertiesService.getScriptProperties().getProperty('x');
 
-  // 3) UrlFetch + token  → the PDF export path (Print blank form).
-  var first = ss.getSheets()[0];
-  var url = 'https://docs.google.com/spreadsheets/d/' + ss.getId()
-    + '/export?format=pdf&gid=' + first.getSheetId() + '&r1=0&c1=0&r2=1&c2=1';
-  UrlFetchApp.fetch(url, {
-    headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken() },
-    muteHttpExceptions: true
-  });
-
+  // NOTE: no UrlFetch here — printing is done by the browser, so the script never
+  // needs the "connect to an external service" permission.
   SpreadsheetApp.getUi().alert('6S Audit Tools authorized — every tool is ready to use.');
 }
 
