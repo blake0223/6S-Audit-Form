@@ -73,6 +73,24 @@ function buildToolHtml_(cfg, tabs) {
 }
 
 /**
+ * Called at the start of every tool. The first time a user runs any tool, this
+ * forces Google's one-time permission prompt to include WRITE access (a read-only
+ * touch wouldn't), because it statically performs a reversible write (a temp sheet
+ * created and deleted). Guarded so the write only happens once.
+ */
+function ensureAuthorized_() {
+  var props = PropertiesService.getScriptProperties();
+  if (props.getProperty('authChecked')) return;
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var stale = ss.getSheetByName('_6s_auth_check');
+  if (stale) ss.deleteSheet(stale);
+  var tmp = ss.insertSheet('_6s_auth_check');
+  ss.deleteSheet(tmp);
+  ScriptApp.getOAuthToken();
+  props.setProperty('authChecked', '1');
+}
+
+/**
  * Dispatcher called by every picker dialog (avoids google.script.run[name].apply,
  * which is unreliable in the dialog sandbox). Routes to the right core function.
  */

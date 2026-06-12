@@ -8,6 +8,7 @@
 
 /** Menu launcher — Add grading item. */
 function addGradingItem() {
+  ensureAuthorized_();
   showToolDialog_({
     title: 'Add grading item',
     type: 'monthly',

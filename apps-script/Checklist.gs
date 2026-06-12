@@ -7,6 +7,7 @@
 
 /** Menu launcher — opens the facility (checklist) picker. */
 function addChecklistItem() {
+  ensureAuthorized_();
   showToolDialog_({
     title: 'Add weekly checklist item',
     type: 'checklist',

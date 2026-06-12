@@ -15,6 +15,7 @@ var SKIP_ROW_START = 4; // monthly audit: first row to leave off the printout
 var SKIP_ROW_COUNT = 2; // rows 4 and 5
 
 function printForm() {
+  ensureAuthorized_();
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var byKey = {};
   ss.getSheets().forEach(function (s) {

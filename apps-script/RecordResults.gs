@@ -10,6 +10,7 @@
 
 /** Menu launcher — opens the facility picker. */
 function recordAudit() {
+  ensureAuthorized_();
   showToolDialog_({
     title: 'Record audit results',
     type: 'monthly',

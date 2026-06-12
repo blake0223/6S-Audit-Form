@@ -36,6 +36,9 @@ function showHelp() {
     + 'and add any location-specific checks to your Weekly Checklist.</p>'
     + '<p><b>Running an audit:</b> use <b>Print blank form</b> to fill it out by hand, then '
     + '<b>Record audit results</b> to log the scores into KPI Data.</p>'
+    + '<p style="background:#FEF9C3;padding:8px;border-radius:5px"><b>First time only:</b> the first '
+    + 'tool you run will ask for permission &mdash; click <b>Advanced &rsaquo; Go to &hellip; &rsaquo; Allow</b>, '
+    + 'then run the tool again. Each person does this once.</p>'
     + '</div>')
     .setWidth(470).setHeight(440);
   SpreadsheetApp.getUi().showModalDialog(html, 'How to use the Hickory 6S Audit Forms');

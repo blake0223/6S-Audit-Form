@@ -14,6 +14,7 @@ var QUESTION_COL = 3; // fallback if the question header isn't found
 
 /** Menu launcher — opens the facility picker. */
 function addLocation() {
+  ensureAuthorized_();
   showToolDialog_({
     title: 'Add location',
     type: 'monthly',
