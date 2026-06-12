@@ -1,40 +1,67 @@
 /**
- * PrintForm — pick the facility, then Monthly audit / Weekly checklist, and open
- * that tab's print-ready PDF.
+ * PrintForm — native pickers (form type, then facility), then open a print-ready
+ * PDF in the browser.
  *
- * IMPORTANT: the PDF is fetched by the USER'S BROWSER (they're already signed in),
- * not by the script. That means the script never needs the "connect to an external
- * service" permission — the only permission the whole tool set needs is "edit this
- * spreadsheet," which keeps the consent simple for non-technical users.
- *
- *   • Monthly audit  → portrait, fit-to-width.
- *   • Weekly checklist → landscape, fit-to-width (wide grid).
+ * For the Monthly audit, the printout drops column A (No.), the Total Score column,
+ * and rows 2–5 (the summary block). Those are non-rectangular, so we make a hidden
+ * throwaway copy of the tab, delete those rows/columns ON THE COPY, and let the
+ * browser fetch the copy's PDF. This runs in the menu context (no google.script.run)
+ * and uses no UrlFetch — so the only permission needed is "edit this spreadsheet".
+ * The copy is replaced on each print.
  *
  * Menu: 6S Audit Tools ▸ Print blank form
  */
 function printForm() {
+  var ui = SpreadsheetApp.getUi();
+  var typeLabel = pickOption_(['Monthly audit', 'Weekly checklist'], 'Print blank form — which form');
+  if (!typeLabel) return;
+  var type = (typeLabel === 'Weekly checklist') ? 'checklist' : 'monthly';
+  var sheetName = pickFacility_(type, 'Print blank form');
+  if (!sheetName) return;
+
+  var url;
+  try { url = buildPrintUrl_(sheetName, type); }
+  catch (e) { ui.alert('Error: ' + e.message); return; }
+
+  var html = HtmlService.createHtmlOutput(
+      '<body style="font-family:Arial;margin:0;padding:16px;font-size:13px;color:#374151">'
+    + 'Opening the print-ready PDF in a new tab…'
+    + '<script>window.open(' + JSON.stringify(url) + ',"_blank");'
+    + 'setTimeout(google.script.host.close,500);</script></body>')
+    .setWidth(300).setHeight(90);
+  ui.showModelessDialog(html, 'Print');
+}
+
+/** Build the export URL, trimming a hidden copy for Monthly audits. */
+function buildPrintUrl_(sheetName, type) {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var ssId = ss.getId();
-  var byKey = {};
-  ss.getSheets().forEach(function (s) {
-    var n = s.getName();
-    var isMonthly = /monthly audit/i.test(n);
-    var isChecklist = /checklist/i.test(n);
-    if ((!isMonthly && !isChecklist) || EXCLUDE_TABS.test(n)) return;
-    var key = String(n).trim().split(/\s+/)[0].toUpperCase();
-    if (!byKey[key]) byKey[key] = { label: facilityLabel_(n), monthly: null, checklist: null };
-    if (isMonthly) { byKey[key].monthly = s.getSheetId(); byKey[key].label = facilityLabel_(n); }
-    else { byKey[key].checklist = s.getSheetId(); }
-  });
-  var facilities = Object.keys(byKey).map(function (k) { return byKey[k]; });
-  if (!facilities.length) {
-    SpreadsheetApp.getUi().alert('No Monthly Audit or Weekly Checklist tabs found.');
-    return;
+  var src = ss.getSheetByName(sheetName);
+  if (!src) throw new Error('Tab not found: ' + sheetName);
+
+  var gid;
+  if (type === 'monthly') {
+    var old = ss.getSheetByName('_print_tmp');
+    if (old) ss.deleteSheet(old);
+    var copy = src.copyTo(ss).setName('_print_tmp');
+
+    var headerRow = findHeaderRow_(copy, copy.getLastRow());
+    var totalCol = findColByHeader_(copy, headerRow, 'total score');
+    if (totalCol) copy.deleteColumn(totalCol); // Total Score column
+    copy.deleteColumn(1);                       // column A (No.)
+    copy.deleteRows(2, 4);                       // rows 2–5 (summary block)
+
+    copy.hideSheet();
+    SpreadsheetApp.flush();
+    gid = copy.getSheetId();
+  } else {
+    gid = src.getSheetId();
   }
 
-  var html = HtmlService.createHtmlOutput(buildPrintHtml_(ssId, facilities))
-    .setWidth(390).setHeight(250);
-  SpreadsheetApp.getUi().showModelessDialog(html, 'Print blank form');
+  return 'https://docs.google.com/spreadsheets/d/' + ss.getId() + '/export?'
+    + 'format=pdf&gid=' + gid
+    + '&portrait=' + (type === 'monthly' ? 'true' : 'false')
+    + '&fitw=true&size=letter&gridlines=false&printtitle=false&sheetnames=false&pagenumbers=true'
+    + '&top_margin=0.50&bottom_margin=0.50&left_margin=0.40&right_margin=0.40';
 }
 
 /** Strip the form-type words from a tab name to get a clean facility label. */
@@ -43,33 +70,4 @@ function facilityLabel_(name) {
     .replace(/6S/ig, '')
     .replace(/monthly audit sheet|monthly audit|daily checklist|weekly checklist|checklist|facility summary|sheet/ig, '')
     .replace(/\s+/g, ' ').trim() || name;
-}
-
-function buildPrintHtml_(ssId, facilities) {
-  return ''
-    + '<style>body{font-family:Arial;margin:0;padding:16px;font-size:13px;color:#111827}'
-    + 'h3{margin:0 0 12px}.row{margin-bottom:12px}label{font-weight:bold}'
-    + 'select{width:100%;font-size:13px;padding:5px;box-sizing:border-box}'
-    + '#go{background:#1F2A37;color:#fff;border:0;border-radius:6px;padding:10px 18px;font-weight:bold;cursor:pointer}'
-    + '#msg{margin-top:10px;color:#6B7280}</style>'
-    + '<h3>Print blank form</h3>'
-    + '<div class="row"><label>Facility</label><br><select id="fac"></select></div>'
-    + '<div class="row"><label>Form</label><br>'
-    + '<label style="font-weight:normal"><input type="radio" name="t" value="monthly" checked> Monthly audit</label>&nbsp;&nbsp;'
-    + '<label style="font-weight:normal"><input type="radio" name="t" value="checklist"> Weekly checklist</label></div>'
-    + '<button id="go">Open PDF</button><div id="msg"></div>'
-    + '<script>'
-    + 'var SS=' + JSON.stringify(ssId) + ',F=' + JSON.stringify(facilities) + ';'
-    + 'var sel=document.getElementById("fac");'
-    + 'F.forEach(function(f,i){var o=document.createElement("option");o.value=i;o.text=f.label;sel.add(o);});'
-    + 'function type(){return document.querySelector("input[name=t]:checked").value;}'
-    + 'document.getElementById("go").addEventListener("click",function(){'
-    + 'var f=F[sel.value];var t=type();var gid=(t==="monthly")?f.monthly:f.checklist;'
-    + 'if(gid===null||gid===undefined){document.getElementById("msg").textContent="This facility has no "+(t==="monthly"?"Monthly Audit":"Weekly Checklist")+" tab.";return;}'
-    + 'var url="https://docs.google.com/spreadsheets/d/"+SS+"/export?format=pdf&gid="+gid'
-    + '+"&portrait="+(t==="monthly"?"true":"false")'
-    + '+"&fitw=true&size=letter&gridlines=false&printtitle=false&sheetnames=false&pagenumbers=true'
-    + '&top_margin=0.50&bottom_margin=0.50&left_margin=0.40&right_margin=0.40";'
-    + 'window.open(url,"_blank");google.script.host.close();});'
-    + '</script>';
 }
