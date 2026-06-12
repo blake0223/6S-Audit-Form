@@ -1,54 +1,77 @@
 /**
- * RoomTotals — fills the "Total Score" column so that, for every item row, it
- * sums that row's room-score columns (all columns between the questions column
- * and the Total Score column). The formula shows "-" until at least one room is
- * scored: =IF(COUNT(rooms)=0,"-",SUM(rooms)). Runs automatically when a room or
- * row is added, and can be run on demand from the menu.
+ * RoomTotals — keeps a facility audit tab's score formulas correct and dynamic as
+ * rooms and rows are added. Re-stamps (matching the layout you built):
  *
+ *   • Per-row Total Score (total column):
+ *       =IF(<firstRoom>r="","-",SUM(<firstRoom>r:<lastRoom>r))      ← spans ALL rooms
+ *   • Max Possible:
+ *       =COUNTA(<checkItems>)*(COLUMN(<totalHdr>)-COLUMN(<firstRoomHdr>))*3
+ *       (room count = columns between first room and the Total column, so it grows
+ *        automatically when a room is inserted before the Total column)
+ *   • Each room % and the Total %:
+ *       =IFERROR(SUM(<col items>)/$<MaxPossible>$,0)   ← ABSOLUTE max ref, can't shift
+ *
+ * Total Score and RESULT reference the Total column directly, so they follow it on
+ * insert and grow when rows are added inside — left as-is.
+ *
+ * Runs automatically on Add room / Add row, and on demand from the menu.
  * Menu: 6S Audit Tools ▸ Rebuild room totals   (wired up in onOpen.gs)
  */
 function rebuildRoomTotals() {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet = ss.getSheetByName(AUDIT_SHEET_NAME) || ss.getActiveSheet();
-  var ui = SpreadsheetApp.getUi();
+  var sheet = SpreadsheetApp.getActiveSheet();
   var n = rebuildRoomTotals_(sheet);
-  if (n > 0) {
-    ui.alert('Total Score column updated — ' + n + ' rows now sum their room scores.');
-  } else {
-    ui.alert('No totals written. Make sure there are room columns between the '
-      + 'questions and a "Total Score" column.');
-  }
+  SpreadsheetApp.getUi().alert(n > 0
+    ? 'Refreshed totals + summary formulas for ' + n + ' items on "' + sheet.getName() + '".'
+    : 'No audit items found on this tab — open a facility Monthly Audit tab and try again.');
 }
 
-/**
- * Write per-row SUM formulas into the Total Score column. Returns the number of
- * rows updated (0 if the layout couldn't be resolved).
- */
+/** Re-stamp the per-row totals and summary formulas. Returns item-row count. */
 function rebuildRoomTotals_(sheet) {
   var lastRow = sheet.getLastRow();
   var headerRow = findHeaderRow_(sheet, lastRow);
-  var questionCol = findQuestionCol_(sheet, headerRow) || QUESTION_COL;
+  var qCol = findQuestionCol_(sheet, headerRow) || QUESTION_COL;
   var totalCol = findColByHeader_(sheet, headerRow, 'total score');
+  if (!totalCol || totalCol <= qCol + 1) return 0;
 
-  // Need at least one room column between the questions and the Total Score column.
-  if (!totalCol || totalCol <= questionCol + 1) return 0;
-
-  var firstRoom = questionCol + 1;
-  var lastRoom = totalCol - 1;
-  var L1 = columnToLetter_(firstRoom);
-  var L2 = columnToLetter_(lastRoom);
+  var firstRoom = qCol + 1, lastRoom = totalCol - 1;
+  var R1 = columnToLetter_(firstRoom), Rn = columnToLetter_(lastRoom);
 
   var colA = sheet.getRange(headerRow + 1, 1, lastRow - headerRow, 1).getValues();
-  var count = 0;
-  for (var i = 0; i < colA.length; i++) {
-    if (isItemNumber_(colA[i][0])) {
-      var r = headerRow + 1 + i;
-      var range = L1 + r + ':' + L2 + r;
-      sheet.getRange(r, totalCol).setFormula('=IF(COUNT(' + range + ')=0,"-",SUM(' + range + '))');
-      count++;
-    }
+  var rows = [];
+  for (var i = 0; i < colA.length; i++) if (isItemNumber_(colA[i][0])) rows.push(headerRow + 1 + i);
+  if (!rows.length) return 0;
+  var first = rows[0], last = rows[rows.length - 1];
+
+  // Per-row Total Score — spans all room columns (matches your IF(<firstRoom>="") pattern).
+  rows.forEach(function (r) {
+    sheet.getRange(r, totalCol).setFormula('=IF(' + R1 + r + '="","-",SUM(' + R1 + r + ':' + Rn + r + '))');
+  });
+
+  refreshFacilitySummary_(sheet, headerRow, qCol, totalCol, firstRoom, lastRoom, first, last);
+  return rows.length;
+}
+
+/** Re-stamp Max Possible (dynamic room count) and the room/total % cells (absolute max ref). */
+function refreshFacilitySummary_(sheet, headerRow, qCol, totalCol, firstRoom, lastRoom, first, last) {
+  var pctRow = headerRow - 1;
+  if (pctRow < 1) return;
+
+  var max = findLabelValueCell_(sheet, headerRow, 'max possible');
+  if (!max) return;
+
+  var checkL = columnToLetter_(Math.max(qCol - 1, 1));         // Check Item column (counts items)
+  var totalHdr = columnToLetter_(totalCol) + headerRow;        // e.g. F6
+  var firstHdr = columnToLetter_(firstRoom) + headerRow;       // e.g. D6
+  sheet.getRange(max.row, max.col).setFormula(
+    '=COUNTA(' + checkL + first + ':' + checkL + last + ')*(COLUMN(' + totalHdr + ')-COLUMN(' + firstHdr + '))*3');
+
+  var maxRef = '$' + columnToLetter_(max.col) + '$' + max.row;
+  for (var c = firstRoom; c <= lastRoom; c++) {
+    var cl = columnToLetter_(c);
+    sheet.getRange(pctRow, c).setFormula('=IFERROR(SUM(' + cl + first + ':' + cl + last + ')/' + maxRef + ',0)');
   }
-  return count;
+  var tl = columnToLetter_(totalCol);
+  sheet.getRange(pctRow, totalCol).setFormula('=IFERROR(SUM(' + tl + first + ':' + tl + last + ')/' + maxRef + ',0)');
 }
 
 /* ---------- helpers ---------- */
@@ -62,6 +85,21 @@ function findColByHeader_(sheet, headerRow, needle) {
     if (String(hdr[c]).toLowerCase().indexOf(needle) >= 0) return c + 1;
   }
   return 0;
+}
+
+/** Find a label above the header row and return its VALUE cell (the row below it). */
+function findLabelValueCell_(sheet, headerRow, needle) {
+  needle = needle.toLowerCase();
+  var rows = Math.max(headerRow - 1, 1);
+  var vals = sheet.getRange(1, 1, rows, sheet.getLastColumn()).getValues();
+  for (var r = 0; r < vals.length; r++) {
+    for (var c = 0; c < vals[r].length; c++) {
+      if (String(vals[r][c]).trim().toLowerCase().indexOf(needle) >= 0) {
+        return { row: Math.min(r + 2, headerRow - 1), col: c + 1 };
+      }
+    }
+  }
+  return null;
 }
 
 /** 1 -> A, 4 -> D, 27 -> AA. */
