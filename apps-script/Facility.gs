@@ -65,7 +65,9 @@ function buildToolHtml_(cfg, tabs) {
     + 'var b=this;b.disabled=true;document.getElementById("msg").textContent="Working…";'
     + 'google.script.run'
     + '.withSuccessHandler(function(m){document.getElementById("msg").textContent=m||"Done.";setTimeout(google.script.host.close,1300);})'
-    + '.withFailureHandler(function(e){b.disabled=false;document.getElementById("msg").textContent="Error: "+e.message;})'
+    + '.withFailureHandler(function(e){b.disabled=false;var m=(e&&e.message)||"";'
+    + 'document.getElementById("msg").textContent=/authoriz/i.test(m)'
+    + '?"Run 6S Audit Tools \\u25b8 Enable tools (first-time setup) once, then try again.":"Error: "+m;})'
     + '.runTool(CB,fac,f);});'
     + '</script>';
 }

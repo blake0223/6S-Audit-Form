@@ -100,8 +100,9 @@ function buildPrintHtml_(facilities) {
     + 'var bytes=Uint8Array.from(atob(b64),function(c){return c.charCodeAt(0);});'
     + 'var url=URL.createObjectURL(new Blob([bytes],{type:"application/pdf"}));'
     + 'if(w){w.location=url;}else{window.open(url,"_blank");}google.script.host.close();})'
-    + '.withFailureHandler(function(e){if(w){w.close();}b.disabled=false;'
-    + 'document.getElementById("msg").textContent="Error: "+e.message;})'
+    + '.withFailureHandler(function(e){if(w){w.close();}b.disabled=false;var m=(e&&e.message)||"";'
+    + 'document.getElementById("msg").textContent=/authoriz/i.test(m)'
+    + '?"Run 6S Audit Tools \\u25b8 Enable tools (first-time setup) once, then try again.":"Error: "+m;})'
     + '.makeFormPdf(tab,type());});'
     + '</script>';
 }
