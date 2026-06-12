@@ -5,8 +5,14 @@
  * tool works because the dialogs' google.script.run calls are then permitted.
  */
 function authorize() {
-  SpreadsheetApp.getActiveSpreadsheet().getName(); // spreadsheets scope
-  ScriptApp.getOAuthToken();                       // token used by the PDF export
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  // A real (reversible) WRITE so Google prompts for write permission — the tools
+  // write to the sheet, and a read-only touch wouldn't trigger that consent.
+  var stale = ss.getSheetByName('_6s_auth_check');
+  if (stale) ss.deleteSheet(stale);
+  var tmp = ss.insertSheet('_6s_auth_check');
+  ss.deleteSheet(tmp);
+  ScriptApp.getOAuthToken(); // token used by the PDF export
   SpreadsheetApp.getUi().alert('6S Audit Tools are enabled — you can use the menu now.');
 }
 
