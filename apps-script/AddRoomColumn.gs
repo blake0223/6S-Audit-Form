@@ -4,9 +4,10 @@
  * "Audit Location Scores" merged band, so the band extends over the new column —
  * inserting at the far-left edge of a merge would leave the new column outside it.
  *
- * The neighbouring room column is copied wholesale so the new room inherits the
- * merges, the Score % formula in the band, and all formatting; the per-item score
- * cells are then blanked. The header gets the room name in a unique rotating color.
+ * Formatting is copied from the neighbouring room column cell-by-cell (header, the
+ * % row, and each item row) — never as a full-column range, since that would cross
+ * the title/legend/band merges and throw. The header gets the room name in a unique
+ * rotating color; rebuildRoomTotals_ then stamps the Score % and per-row totals.
  *
  * Menu: 6S Audit Tools ▸ Add room column   (wired up in onOpen.gs)
  */
@@ -38,15 +39,23 @@ function addRoomColumn() {
   var newCol = totalCol;     // the inserted column
   var srcCol = newCol - 1;   // previous right-most room — copied as the template
 
-  // Copy the neighbour room column wholesale (format + Score % formula + merges),
-  // then blank the per-item score cells so the new room starts empty.
-  sheet.getRange(1, srcCol, lastRow, 1).copyTo(sheet.getRange(1, newCol, lastRow, 1));
+  // Match the neighbour room column's look — but copy ONLY non-merged cells.
+  // A range copy that crosses the title/legend/band merges throws
+  // "can't paste that partially intersects a merge", so we copy cell-by-cell:
+  // the % row, the header, and each item row (section bands are skipped).
   sheet.setColumnWidth(newCol, sheet.getColumnWidth(srcCol));
+
+  var pctRow = headerRow - 1;
+  if (pctRow >= 1) {
+    sheet.getRange(pctRow, srcCol).copyTo(sheet.getRange(pctRow, newCol), { formatOnly: true });
+  }
+  sheet.getRange(headerRow, srcCol).copyTo(sheet.getRange(headerRow, newCol), { formatOnly: true });
 
   var colA = sheet.getRange(headerRow + 1, 1, lastRow - headerRow, 1).getValues();
   for (var i = 0; i < colA.length; i++) {
     if (isItemNumber_(colA[i][0])) {
-      sheet.getRange(headerRow + 1 + i, newCol).clearContent();
+      var r = headerRow + 1 + i;
+      sheet.getRange(r, srcCol).copyTo(sheet.getRange(r, newCol), { formatOnly: true });
     }
   }
 
