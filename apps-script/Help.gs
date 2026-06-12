@@ -1,4 +1,15 @@
 /**
+ * authorize — run this ONCE from the Apps Script editor (Run ▸ authorize) to grant
+ * the script permission. The menu dialogs call the server via google.script.run,
+ * which can't trigger the consent screen on its own, so this primes it.
+ */
+function authorize() {
+  SpreadsheetApp.getActiveSpreadsheet().getName();
+  ScriptApp.getOAuthToken();
+  return 'Authorized — you can use the 6S Audit Tools menu now.';
+}
+
+/**
  * Help — the "How to use this sheet" dialog shown from the menu.
  * Menu: 6S Audit Tools ▸ How to use this sheet
  */
