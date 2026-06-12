@@ -15,6 +15,7 @@ function onOpen() {
   var ui = SpreadsheetApp.getUi();
   ui.createMenu('6S Audit Tools')
     .addItem('How to use this sheet', 'showHelp')
+    .addItem('Enable tools (first-time setup)', 'authorize')
     .addSeparator()
     .addSubMenu(ui.createMenu('Monthly audit')
       .addItem('Add location', 'addLocation')

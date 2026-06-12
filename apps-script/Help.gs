@@ -1,12 +1,13 @@
 /**
- * authorize — run this ONCE from the Apps Script editor (Run ▸ authorize) to grant
- * the script permission. The menu dialogs call the server via google.script.run,
- * which can't trigger the consent screen on its own, so this primes it.
+ * authorize — "Enable tools (first-time setup)" menu item. Each user runs this
+ * once: clicking it touches the services that need permission, so Google shows its
+ * normal in-sheet authorization prompt (no editor needed). After approving, every
+ * tool works because the dialogs' google.script.run calls are then permitted.
  */
 function authorize() {
-  SpreadsheetApp.getActiveSpreadsheet().getName();
-  ScriptApp.getOAuthToken();
-  return 'Authorized — you can use the 6S Audit Tools menu now.';
+  SpreadsheetApp.getActiveSpreadsheet().getName(); // spreadsheets scope
+  ScriptApp.getOAuthToken();                       // token used by the PDF export
+  SpreadsheetApp.getUi().alert('6S Audit Tools are enabled — you can use the menu now.');
 }
 
 /**
