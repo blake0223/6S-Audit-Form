@@ -38,6 +38,9 @@ function addChecklistItemFor(sheetName, name) {
   var lastTaskCol = 1;
   for (var c = 0; c < hdr.length; c++) if (String(hdr[c]).trim() !== '') lastTaskCol = c + 1;
   var newCol = lastTaskCol + 1;
+  if (sheet.getMaxColumns() < newCol) {
+    sheet.insertColumnsAfter(sheet.getMaxColumns(), newCol - sheet.getMaxColumns());
+  }
 
   sheet.getRange(headerRow, lastTaskCol).copyTo(sheet.getRange(headerRow, newCol), { formatOnly: true });
   sheet.getRange(headerRow, newCol).setValue(name);
