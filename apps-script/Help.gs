@@ -6,14 +6,27 @@
  */
 function authorize() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
-  // A real (reversible) WRITE so Google prompts for write permission — the tools
-  // write to the sheet, and a read-only touch wouldn't trigger that consent.
+
+  // 1) Reversible WRITE  → spreadsheets scope (the tools edit the sheet).
   var stale = ss.getSheetByName('_6s_auth_check');
   if (stale) ss.deleteSheet(stale);
   var tmp = ss.insertSheet('_6s_auth_check');
   ss.deleteSheet(tmp);
-  ScriptApp.getOAuthToken(); // token used by the PDF export
-  SpreadsheetApp.getUi().alert('6S Audit Tools are enabled — you can use the menu now.');
+
+  // 2) Properties        → used by location-color + auth flag.
+  PropertiesService.getDocumentProperties().getProperty('x');
+  PropertiesService.getScriptProperties().getProperty('x');
+
+  // 3) UrlFetch + token  → the PDF export path (Print blank form).
+  var first = ss.getSheets()[0];
+  var url = 'https://docs.google.com/spreadsheets/d/' + ss.getId()
+    + '/export?format=pdf&gid=' + first.getSheetId() + '&r1=0&c1=0&r2=1&c2=1';
+  UrlFetchApp.fetch(url, {
+    headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken() },
+    muteHttpExceptions: true
+  });
+
+  SpreadsheetApp.getUi().alert('6S Audit Tools authorized — every tool is ready to use.');
 }
 
 /**
