@@ -1,0 +1,4 @@
+# clasp local config (machine/account-specific)
+.clasp.json
+apps-script/.clasp.json
+.clasprc.json
