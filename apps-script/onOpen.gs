@@ -21,14 +21,14 @@ function onOpen() {
   var chkM = ui.createMenu('Add Weekly Checklist Item');
   checklist.forEach(function (f, i) { chkM.addItem(f.label, 't_chk_' + i); });
 
-  var printM = ui.createMenu('Print blank form');
+  var printM = ui.createMenu('Print Audit Form');
   var pmSub = ui.createMenu('Monthly audit');
   monthly.forEach(function (f, i) { pmSub.addItem(f.label, 't_pm_' + i); });
   var pwSub = ui.createMenu('Weekly checklist');
   checklist.forEach(function (f, i) { pwSub.addItem(f.label, 't_pw_' + i); });
   printM.addSubMenu(pmSub).addSubMenu(pwSub);
 
-  var recM = ui.createMenu('Record audit results');
+  var recM = ui.createMenu('Record Audit Results');
   monthly.forEach(function (f, i) { recM.addItem(f.label, 't_rec_' + i); });
 
   ui.createMenu('6S Audit Tools')

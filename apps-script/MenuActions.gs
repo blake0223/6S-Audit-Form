@@ -50,5 +50,5 @@ function openPrintDialog_(sheetName, type) {
     + '<script>window.open(' + JSON.stringify(url) + ',"_blank");</script>'
     + '</body></html>')
     .setWidth(300).setHeight(150);
-  SpreadsheetApp.getUi().showModelessDialog(html, 'Print blank form');
+  SpreadsheetApp.getUi().showModelessDialog(html, 'Print Audit Form');
 }
