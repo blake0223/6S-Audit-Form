@@ -43,7 +43,23 @@ function rebuildRoomTotals_(sheet) {
   });
 
   refreshFacilitySummary_(sheet, headerRow, qCol, totalCol, firstRoom, lastRoom, first, last);
+  applyLocationBorders_(sheet, Math.max(headerRow - 1, 1), firstRoom, lastRoom, last);
   return rows.length;
+}
+
+/**
+ * Border the location-score band: solid left & right side borders on the outer
+ * edges, thinner internal dividers between location columns. Covers the % row, the
+ * location-name header row, and all item rows so it stays consistent as locations
+ * and grading rows are added.
+ */
+function applyLocationBorders_(sheet, topRow, firstRoom, lastRoom, bottomRow) {
+  if (lastRoom < firstRoom || bottomRow < topRow) return;
+  var band = sheet.getRange(topRow, firstRoom, bottomRow - topRow + 1, lastRoom - firstRoom + 1);
+  // Thin internal vertical dividers between location columns.
+  band.setBorder(null, null, null, null, true, null, '#000000', SpreadsheetApp.BorderStyle.SOLID);
+  // Solid left & right side borders on the band edges (thicker than the dividers).
+  band.setBorder(null, true, null, true, null, null, '#000000', SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
 }
 
 /** Re-stamp Max Possible (dynamic room count) and the room/total % cells (absolute max ref). */
