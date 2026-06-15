@@ -30,6 +30,9 @@ function getPrintUrl_(sheetName, type) {
     copy.deleteColumn(1);                       // column A (No.)
     copy.deleteRows(2, 4);                       // rows 2–5 (summary block)
 
+    // Hide it so it isn't visible in the brief window before cleanup. Exporting by
+    // explicit gid still works for a hidden sheet (the gid selects it directly).
+    copy.hideSheet();
     SpreadsheetApp.flush();
     gid = copy.getSheetId();
   } else {
