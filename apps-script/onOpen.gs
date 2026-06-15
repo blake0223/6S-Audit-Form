@@ -18,7 +18,7 @@ function onOpen() {
   var locM = ui.createMenu('Add Monthly Audit Location');
   monthly.forEach(function (f, i) { locM.addItem(f.label, 't_loc_' + i); });
 
-  var chkM = ui.createMenu('Add checklist item');
+  var chkM = ui.createMenu('Add Weekly Checklist Item');
   checklist.forEach(function (f, i) { chkM.addItem(f.label, 't_chk_' + i); });
 
   var printM = ui.createMenu('Print blank form');

@@ -46,7 +46,7 @@ function showHelp() {
     + '(e.g. &ldquo;Parts Room&rdquo;). A new scoring column is added to that facility&rsquo;s Monthly Audit. '
     + 'Add one for <b>every area</b> you audit.</p>'
 
-    + '<p style="margin:10px 0 2px"><b>&#9745; Add checklist item</b></p>'
+    + '<p style="margin:10px 0 2px"><b>&#9745; Add Weekly Checklist Item</b></p>'
     + '<p style="' + step + '">Click it &rarr; click your facility &rarr; type the daily check '
     + '(e.g. &ldquo;Propane turned off&rdquo;). A new checkbox column is added to that facility&rsquo;s Weekly Checklist.</p>'
 
