@@ -58,17 +58,18 @@ function runGradingTool_(fIdx, cIdx) {
   } catch (e) { ui.alert('Error: ' + e.message); }
 }
 
-/** Build the print URL (trimmed copy for monthly) and show a clickable PDF link. */
+/** Build the print URL (trimmed copy for monthly) and open the PDF automatically. */
 function openPrintDialog_(sheetName, type) {
   var url = getPrintUrl_(sheetName, type);
   var html = HtmlService.createHtmlOutput(
-      '<body style="font-family:Arial;margin:0;padding:22px 20px;text-align:center;color:#374151">'
-    + '<p style="font-size:13px;margin:0 0 16px">Your print-ready form is ready.</p>'
+      '<!DOCTYPE html><html><head><base target="_blank"></head>'
+    + '<body style="font-family:Arial;margin:0;padding:20px;text-align:center;color:#374151">'
+    + '<p style="font-size:13px;margin:0 0 14px">Opening your print-ready PDF…</p>'
     + '<a href="' + url + '" target="_blank" rel="noopener" '
     + 'style="display:inline-block;background:#1F4E79;color:#fff;text-decoration:none;'
-    + 'padding:11px 20px;border-radius:6px;font-size:14px;font-weight:bold">Open PDF in new tab</a>'
-    + '<p style="font-size:11px;color:#9ca3af;margin:16px 0 0">Then use your browser’s Print or Download.</p>'
-    + '</body>')
-    .setWidth(300).setHeight(160);
+    + 'padding:11px 20px;border-radius:6px;font-size:14px;font-weight:bold">If it didn’t open, click here</a>'
+    + '<script>window.open(' + JSON.stringify(url) + ',"_blank");</script>'
+    + '</body></html>')
+    .setWidth(300).setHeight(150);
   SpreadsheetApp.getUi().showModelessDialog(html, 'Print blank form');
 }

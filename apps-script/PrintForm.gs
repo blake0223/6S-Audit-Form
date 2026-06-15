@@ -36,11 +36,18 @@ function getPrintUrl_(sheetName, type) {
     gid = src.getSheetId();
   }
 
+  // Pin the export to the account that owns/uses the sheet. Without this, a user
+  // signed into multiple Google accounts opens the link under their default
+  // account and gets a "broken" / no-access page instead of the PDF.
+  var authuser = '';
+  try { authuser = Session.getActiveUser().getEmail() || ''; } catch (e) { /* not available */ }
+
   return 'https://docs.google.com/spreadsheets/d/' + ss.getId() + '/export?'
     + 'format=pdf&gid=' + gid
     + '&portrait=' + (type === 'monthly' ? 'true' : 'false')
     + '&fitw=true&size=letter&gridlines=false&printtitle=false&sheetnames=false&pagenumbers=true'
-    + '&top_margin=0.50&bottom_margin=0.50&left_margin=0.40&right_margin=0.40';
+    + '&top_margin=0.50&bottom_margin=0.50&left_margin=0.40&right_margin=0.40'
+    + (authuser ? '&authuser=' + encodeURIComponent(authuser) : '');
 }
 
 /** Strip the form-type words from a tab name to get a clean facility label. */

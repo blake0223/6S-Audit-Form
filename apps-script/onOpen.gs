@@ -15,7 +15,7 @@ function onOpen() {
   var monthly = listFacilityTabs_('monthly');
   var checklist = listFacilityTabs_('checklist');
 
-  var locM = ui.createMenu('Add location');
+  var locM = ui.createMenu('Add Monthly Audit Location');
   monthly.forEach(function (f, i) { locM.addItem(f.label, 't_loc_' + i); });
 
   var gradM = ui.createMenu('Add grading item');
