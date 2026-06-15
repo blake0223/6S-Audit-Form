@@ -74,8 +74,13 @@ function recordResultsFor(sheetName) {
     result: result, avg: avg, total: total, sections: sections
   });
 
+  // Clear the typed 0–3 scores so the form is fresh for the next audit
+  // (the per-row Total and Score % formulas recompute to blank/0 on their own).
+  sheet.getRange(firstRow, firstRoomCol, span, nRoomCols).clearContent();
+
   return 'Recorded ' + facilityLabel_(sheetName) + ' — ' + result
-    + ' (' + (Math.round(avg * 1000) / 10) + '%). Audit ID ' + id + '.';
+    + ' (' + (Math.round(avg * 1000) / 10) + '%). Audit ID ' + id
+    + '. Score entries cleared for the next audit.';
 }
 
 /** Read the audit sheet structure: rooms (name, col) and items (row, section). */
