@@ -34,7 +34,7 @@ function addChecklistItemFor(sheetName, name) {
   for (var r = 0; r < scan.length; r++) {
     if (String(scan[r][0]).toLowerCase().indexOf('checklist') >= 0) { headerRow = r + 1; break; }
   }
-  if (!headerRow) throw new Error(sheetName + ' does not look like a checklist tab.');
+  if (!headerRow) headerRow = 1; // fall back to the top row if no "Checklist" title cell
 
   var hdr = sheet.getRange(headerRow, 1, 1, lastCol).getValues()[0];
   var lastTaskCol = 1;
@@ -49,10 +49,13 @@ function addChecklistItemFor(sheetName, name) {
   sheet.setColumnWidth(newCol, sheet.getColumnWidth(lastTaskCol));
 
   var rule = SpreadsheetApp.newDataValidation().requireCheckbox().build();
+  var weeks = 0;
   for (var rr = headerRow + 1; rr <= lastRow; rr++) {
     if (String(sheet.getRange(rr, 1).getValue()).trim() === '') continue;
     sheet.getRange(rr, newCol).setDataValidation(rule).setValue(false);
+    weeks++;
   }
 
-  return 'Added checklist item "' + name + '" to ' + facilityLabel_(sheetName) + '.';
+  return 'Added checklist item "' + name + '" to ' + facilityLabel_(sheetName)
+    + ' with a checkbox on ' + weeks + ' week row(s).';
 }
