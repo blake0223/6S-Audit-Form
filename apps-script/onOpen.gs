@@ -3,7 +3,7 @@
  * per facility (and per 6S category for grading). Clicking a submenu item runs in
  * the menu context, so it authorizes cleanly — no google.script.run, no auth wall.
  *
- * Submenu items call the generated wrappers in MenuWrappers.gs (t_loc_0, t_grad_1_2,
+ * Submenu items call the generated wrappers in MenuWrappers.gs (t_loc_0, t_rec_1,
  * …), which forward to the dispatchers in MenuActions.gs. The wrapper index matches
  * the facility's position in listFacilityTabs_(type), which is stable (sheet order).
  *
@@ -17,13 +17,6 @@ function onOpen() {
 
   var locM = ui.createMenu('Add Monthly Audit Location');
   monthly.forEach(function (f, i) { locM.addItem(f.label, 't_loc_' + i); });
-
-  var gradM = ui.createMenu('Add grading item');
-  monthly.forEach(function (f, i) {
-    var sub = ui.createMenu(f.label);
-    GRADING_CATEGORIES.forEach(function (c, ci) { sub.addItem(categoryLabel_(c), 't_grad_' + i + '_' + ci); });
-    gradM.addSubMenu(sub);
-  });
 
   var chkM = ui.createMenu('Add checklist item');
   checklist.forEach(function (f, i) { chkM.addItem(f.label, 't_chk_' + i); });
@@ -42,7 +35,6 @@ function onOpen() {
     .addItem('How to use this sheet', 'showHelp')
     .addSeparator()
     .addSubMenu(locM)
-    .addSubMenu(gradM)
     .addSubMenu(chkM)
     .addSeparator()
     .addSubMenu(printM)

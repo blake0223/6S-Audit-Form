@@ -9,13 +9,6 @@
  * and category selection, and those are now menu items.
  */
 
-var GRADING_CATEGORIES = ['SORT', 'SET IN ORDER', 'SHINE', 'STANDARDIZE', 'SUSTAIN', 'SAFETY'];
-
-/** "SET IN ORDER" -> "Set in Order" for menu labels. */
-function categoryLabel_(c) {
-  return c.toLowerCase().replace(/(^|\s)\S/g, function (m) { return m.toUpperCase(); });
-}
-
 /** Facility-only tools: 'loc' | 'chk' | 'rec' | 'pm' | 'pw'. */
 function runFacilityTool_(tool, type, idx) {
   var ui = SpreadsheetApp.getUi();
@@ -41,20 +34,6 @@ function runFacilityTool_(tool, type, idx) {
     } else if (tool === 'pw') {
       openPrintDialog_(f.name, 'checklist');
     }
-  } catch (e) { ui.alert('Error: ' + e.message); }
-}
-
-/** Add grading item: facility index + 6S category index, then prompt for the name. */
-function runGradingTool_(fIdx, cIdx) {
-  var ui = SpreadsheetApp.getUi();
-  var f = listFacilityTabs_('monthly')[fIdx];
-  var cat = GRADING_CATEGORIES[cIdx];
-  if (!f || !cat) { ui.alert('That option is no longer available — reopen the sheet to refresh the menu.'); return; }
-  try {
-    var r = ui.prompt('Add grading item — ' + f.label + ' / ' + categoryLabel_(cat),
-      'Check item name (optional — leave blank to fill in later):', ui.ButtonSet.OK_CANCEL);
-    if (r.getSelectedButton() !== ui.Button.OK) return;
-    ui.alert(addGradingItemFor(f.name, cat, r.getResponseText().trim()));
   } catch (e) { ui.alert('Error: ' + e.message); }
 }
 
