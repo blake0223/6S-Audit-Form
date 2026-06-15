@@ -6,19 +6,22 @@
  * Menu: 6S Audit Tools ▸ Monthly audit ▸ Add grading item
  */
 
-/** Menu launcher — choose facility, choose category, then enter the item name. */
+/** Menu launcher — click facility, click 6S category, then enter the item name. */
 function addGradingItem() {
-  var ui = SpreadsheetApp.getUi();
-  var sheetName = pickFacility_('monthly', 'Add grading item');
-  if (!sheetName) return;
-  var section = pickOption_(['SORT', 'SET IN ORDER', 'SHINE', 'STANDARDIZE', 'SUSTAIN', 'SAFETY'],
-    'Add grading item — 6S category');
-  if (!section) return;
-  var resp = ui.prompt('Add grading item',
-    'Check item name (optional — leave blank to fill in later):', ui.ButtonSet.OK_CANCEL);
-  if (resp.getSelectedButton() !== ui.Button.OK) return;
-  try { ui.alert(addGradingItemFor(sheetName, section, resp.getResponseText().trim())); }
-  catch (e) { ui.alert('Error: ' + e.message); }
+  showToolDialog_({
+    title: 'Add grading item', type: 'monthly', callback: 'addGradingItemFor',
+    argOrder: ['facility', 'category', 'name'], button: 'Add item',
+    steps: [
+      { kind: 'facility', key: 'facility', label: 'Choose a facility' },
+      { kind: 'pick', key: 'category', label: 'Which 6S category?', options: [
+        { label: 'Sort', value: 'SORT' }, { label: 'Set in Order', value: 'SET IN ORDER' },
+        { label: 'Shine', value: 'SHINE' }, { label: 'Standardize', value: 'STANDARDIZE' },
+        { label: 'Sustain', value: 'SUSTAIN' }, { label: 'Safety', value: 'SAFETY' }
+      ] },
+      { kind: 'text', key: 'name', label: 'Check item (optional)',
+        placeholder: 'e.g. Refrigerant cylinders secured', optional: true }
+    ]
+  });
 }
 
 /** Core — add a grading item to the named tab's chosen category. */

@@ -5,18 +5,16 @@
  * Menu: 6S Audit Tools ▸ Weekly checklist ▸ Add checklist item
  */
 
-/** Menu launcher — choose facility, then enter the checklist item. */
+/** Menu launcher — click facility, then enter the checklist item. */
 function addChecklistItem() {
-  var ui = SpreadsheetApp.getUi();
-  var sheetName = pickFacility_('checklist', 'Add weekly checklist item');
-  if (!sheetName) return;
-  var resp = ui.prompt('Add weekly checklist item',
-    'Checklist item (e.g. Propane turned off):', ui.ButtonSet.OK_CANCEL);
-  if (resp.getSelectedButton() !== ui.Button.OK) return;
-  var name = resp.getResponseText().trim();
-  if (!name) { ui.alert('No item entered.'); return; }
-  try { ui.alert(addChecklistItemFor(sheetName, name)); }
-  catch (e) { ui.alert('Error: ' + e.message); }
+  showToolDialog_({
+    title: 'Add weekly checklist item', type: 'checklist', callback: 'addChecklistItemFor',
+    argOrder: ['facility', 'name'], button: 'Add item',
+    steps: [
+      { kind: 'facility', key: 'facility', label: 'Choose a facility' },
+      { kind: 'text', key: 'name', label: 'Checklist item', placeholder: 'e.g. Propane turned off' }
+    ]
+  });
 }
 
 /** Core — add a checklist item column to the named Weekly Checklist tab. */

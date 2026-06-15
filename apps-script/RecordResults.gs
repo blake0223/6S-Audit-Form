@@ -8,13 +8,13 @@
  * Menu: 6S Audit Tools ▸ Record audit results
  */
 
-/** Menu launcher — choose facility, then record. */
+/** Menu launcher — click facility, then record. */
 function recordAudit() {
-  var ui = SpreadsheetApp.getUi();
-  var sheetName = pickFacility_('monthly', 'Record audit results');
-  if (!sheetName) return;
-  try { ui.alert(recordResultsFor(sheetName)); }
-  catch (e) { ui.alert('Error: ' + e.message); }
+  showToolDialog_({
+    title: 'Record audit results', type: 'monthly', callback: 'recordResultsFor',
+    argOrder: ['facility'], button: 'Record',
+    steps: [{ kind: 'facility', key: 'facility', label: 'Choose a facility' }]
+  });
 }
 
 /** Core — record the named facility's Monthly Audit into KPI Data. */
