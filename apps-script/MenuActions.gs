@@ -43,12 +43,24 @@ function openPrintDialog_(sheetName, type) {
   var html = HtmlService.createHtmlOutput(
       '<!DOCTYPE html><html><head><base target="_blank"></head>'
     + '<body style="font-family:Arial;margin:0;padding:20px;text-align:center;color:#374151">'
-    + '<p style="font-size:13px;margin:0 0 14px">Opening your print-ready PDF…</p>'
+    + '<p id="m" style="font-size:13px;margin:0 0 14px">Opening your print-ready PDF…</p>'
     + '<a href="' + url + '" target="_blank" rel="noopener" '
     + 'style="display:inline-block;background:#1F4E79;color:#fff;text-decoration:none;'
     + 'padding:11px 20px;border-radius:6px;font-size:14px;font-weight:bold">If it didn’t open, click here</a>'
-    + '<script>window.open(' + JSON.stringify(url) + ',"_blank");</script>'
-    + '</body></html>')
+    + '<script>window.open(' + JSON.stringify(url) + ',"_blank");'
+    // Once the browser has had time to fetch the PDF, remove the staging copy.
+    // Silent failure handler => never shows an auth prompt; if it doesn\'t run, the
+    // next print deletes it anyway.
+    + 'setTimeout(function(){google.script.run.withFailureHandler(function(){}).deletePrintTmp();'
+    + 'var m=document.getElementById("m");if(m)m.textContent="You can close this window.";},12000);'
+    + '</script></body></html>')
     .setWidth(300).setHeight(150);
   SpreadsheetApp.getUi().showModelessDialog(html, 'Print Audit Form');
+}
+
+/** Delete the staging copy used for printing (best-effort cleanup from the dialog). */
+function deletePrintTmp() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var t = ss.getSheetByName('_print_tmp');
+  if (t) ss.deleteSheet(t);
 }
