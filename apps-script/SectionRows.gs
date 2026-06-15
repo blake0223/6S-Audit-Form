@@ -6,24 +6,6 @@
  * Menu: 6S Audit Tools ▸ Monthly audit ▸ Add grading item
  */
 
-/** Menu launcher — click facility, click 6S category, then enter the item name. */
-function addGradingItem() {
-  showToolDialog_({
-    title: 'Add grading item', type: 'monthly', callback: 'addGradingItemFor',
-    argOrder: ['facility', 'category', 'name'], button: 'Add item',
-    steps: [
-      { kind: 'facility', key: 'facility', label: 'Choose a facility' },
-      { kind: 'pick', key: 'category', label: 'Which 6S category?', options: [
-        { label: 'Sort', value: 'SORT' }, { label: 'Set in Order', value: 'SET IN ORDER' },
-        { label: 'Shine', value: 'SHINE' }, { label: 'Standardize', value: 'STANDARDIZE' },
-        { label: 'Sustain', value: 'SUSTAIN' }, { label: 'Safety', value: 'SAFETY' }
-      ] },
-      { kind: 'text', key: 'name', label: 'Check item (optional)',
-        placeholder: 'e.g. Refrigerant cylinders secured', optional: true }
-    ]
-  });
-}
-
 /** Core — add a grading item to the named tab's chosen category. */
 function addGradingItemFor(sheetName, section, name) {
   var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(sheetName);

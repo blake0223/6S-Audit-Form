@@ -5,18 +5,6 @@
  * Menu: 6S Audit Tools ▸ Weekly checklist ▸ Add checklist item
  */
 
-/** Menu launcher — click facility, then enter the checklist item. */
-function addChecklistItem() {
-  showToolDialog_({
-    title: 'Add weekly checklist item', type: 'checklist', callback: 'addChecklistItemFor',
-    argOrder: ['facility', 'name'], button: 'Add item',
-    steps: [
-      { kind: 'facility', key: 'facility', label: 'Choose a facility' },
-      { kind: 'text', key: 'name', label: 'Checklist item', placeholder: 'e.g. Propane turned off' }
-    ]
-  });
-}
-
 /** Core — add a checklist item column to the named Weekly Checklist tab. */
 function addChecklistItemFor(sheetName, name) {
   name = String(name || '').trim();

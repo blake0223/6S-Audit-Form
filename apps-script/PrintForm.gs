@@ -12,22 +12,8 @@
  *
  * Menu: 6S Audit Tools ▸ Print blank form
  */
-function printForm() {
-  showToolDialog_({
-    title: 'Print blank form', callback: 'getPrintUrl', resultIsUrl: true,
-    argOrder: ['facility', 'type'],
-    facilitiesByType: { monthly: listFacilityTabs_('monthly'), checklist: listFacilityTabs_('checklist') },
-    steps: [
-      { kind: 'pick', key: 'type', label: 'Which form?', options: [
-        { label: 'Monthly audit', value: 'monthly' }, { label: 'Weekly checklist', value: 'checklist' }
-      ] },
-      { kind: 'facility', key: 'facility', label: 'Choose a facility', typeFrom: 'type' }
-    ]
-  });
-}
-
 /** Build the PDF export URL, trimming a throwaway copy for Monthly audits. */
-function getPrintUrl(sheetName, type) {
+function getPrintUrl_(sheetName, type) {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var src = ss.getSheetByName(sheetName);
   if (!src) throw new Error('Tab not found: ' + sheetName);

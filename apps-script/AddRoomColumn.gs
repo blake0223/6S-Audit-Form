@@ -12,18 +12,6 @@
 
 var QUESTION_COL = 3; // fallback if the question header isn't found
 
-/** Menu launcher — click facility, then enter the location name. */
-function addLocation() {
-  showToolDialog_({
-    title: 'Add location', type: 'monthly', callback: 'addLocationFor',
-    argOrder: ['facility', 'name'], button: 'Add location',
-    steps: [
-      { kind: 'facility', key: 'facility', label: 'Choose a facility' },
-      { kind: 'text', key: 'name', label: 'Location / area name', placeholder: 'e.g. Parts Room' }
-    ]
-  });
-}
-
 /** Core — add a location column to the named Monthly Audit tab. */
 function addLocationFor(sheetName, name) {
   name = String(name || '').trim();
