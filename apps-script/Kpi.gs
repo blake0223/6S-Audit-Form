@@ -32,6 +32,20 @@ function appendMonthlyAuditRow_(o) {
   }
   if (!headerRow) throw new Error('Could not find the "Audit ID" header in KPI Data.');
 
+  // Ensure a "Facility" column exists so each audit is labeled by facility. Insert
+  // it once at the front of the block (before Audit ID), then reuse it thereafter.
+  if (!map['facility']) {
+    var idC0 = map['audit id'];
+    sh.insertColumnBefore(idC0);
+    sh.getRange(headerRow, idC0).setValue('Facility');
+    var hv = sh.getRange(headerRow, 1, 1, sh.getLastColumn()).getValues()[0];
+    map = {};
+    for (var k = 0; k < hv.length; k++) {
+      var hh = String(hv[k]).trim();
+      if (hh) map[hh.toLowerCase()] = k + 1;
+    }
+  }
+
   // First empty row in the Audit ID column, below the header.
   var idCol = map['audit id'];
   var below = sh.getRange(headerRow + 1, idCol, Math.max(sh.getLastRow() - headerRow, 1), 1).getValues();
