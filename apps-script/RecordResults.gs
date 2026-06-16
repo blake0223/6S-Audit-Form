@@ -40,7 +40,16 @@ function recordResultsFor(sheetName) {
     });
   });
 
-  if (!scoredCells) throw new Error('No scores found on ' + sheetName + ' — type 0–3 into the location columns first.');
+  // Require a complete audit — every item must be scored in every location.
+  // Partial sheets can't be submitted.
+  var expected = layout.rooms.length * layout.items.length;
+  if (scoredCells < expected) {
+    var blanks = expected - scoredCells;
+    throw new Error('This monthly audit isn’t complete, so it can’t be submitted yet. '
+      + 'Every item needs a 0–3 score in every location first — '
+      + blanks + ' of ' + expected + ' score cells are still blank. '
+      + 'Fill them in, then run Record Audit Results again.');
+  }
 
   var roomPcts = [];
   layout.rooms.forEach(function (rm) {
