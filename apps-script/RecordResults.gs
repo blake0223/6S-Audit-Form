@@ -66,21 +66,43 @@ function recordResultsFor(sheetName) {
     sections[sec] = a.scored > 0 ? a.sum / (a.scored * 3) : '';
   });
 
+  // Capture each item's comment (Comments column is just right of Total Score) into
+  // one string, labeled by check-item name, to store on the KPI Data row.
+  var commentCol = layout.totalCol ? layout.totalCol + 1 : 0;
+  var comments = '';
+  if (commentCol && commentCol <= sheet.getLastColumn()) {
+    var nameCol = Math.max((layout.qCol || QUESTION_COL) - 1, 1);
+    var cVals = sheet.getRange(firstRow, commentCol, span, 1).getValues();
+    var nVals = sheet.getRange(firstRow, nameCol, span, 1).getValues();
+    var parts = [];
+    layout.items.forEach(function (it) {
+      var k = it.row - firstRow;
+      var cmt = String(cVals[k][0] || '').trim();
+      if (cmt) {
+        var nm = String(nVals[k][0] || '').trim();
+        parts.push((nm ? nm + ': ' : '') + cmt);
+      }
+    });
+    comments = parts.join('  |  ');
+  }
+
   var id = newAuditId_();
   var tz = SpreadsheetApp.getActiveSpreadsheet().getSpreadsheetTimeZone();
   appendMonthlyAuditRow_({
     facility: facilityLabel_(sheetName), id: id,
     date: Utilities.formatDate(new Date(), tz, 'yyyy-MM-dd'),
-    result: result, avg: avg, total: total, sections: sections
+    result: result, avg: avg, total: total, sections: sections, comments: comments
   });
 
-  // Clear ONLY the typed room scores so the form is fresh for the next audit.
-  // Never touch the Total Score column (its per-row formula must survive) or the
-  // Comments column to its right — stop the clear one column before Total Score.
+  // Clear the typed room scores AND the comments so the form is fresh for the next
+  // audit. Never touch the Total Score column — its per-row formula must survive.
   var clearCols = (layout.totalCol && layout.totalCol > firstRoomCol)
     ? (layout.totalCol - firstRoomCol)
     : nRoomCols;
   sheet.getRange(firstRow, firstRoomCol, span, clearCols).clearContent();
+  if (commentCol && commentCol <= sheet.getLastColumn()) {
+    sheet.getRange(firstRow, commentCol, span, 1).clearContent();
+  }
 
   // Re-stamp the per-row Total Score formula so it is always retained after clearing.
   rebuildRoomTotals_(sheet);
@@ -112,5 +134,5 @@ function getAuditLayout_(sheet) {
     if (String(a).indexOf('◆') >= 0) { section = String(a).replace(/◆/g, '').trim(); continue; }
     if (isItemNumber_(a)) items.push({ row: headerRow + 1 + i, section: section });
   }
-  return { rooms: rooms, items: items, headerRow: headerRow, totalCol: totalCol };
+  return { rooms: rooms, items: items, headerRow: headerRow, totalCol: totalCol, qCol: qCol };
 }

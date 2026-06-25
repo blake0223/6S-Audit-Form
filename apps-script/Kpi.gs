@@ -32,6 +32,20 @@ function appendMonthlyAuditRow_(o) {
   }
   if (!headerRow) throw new Error('Could not find the "Audit ID" header in KPI Data.');
 
+  // Ensure a "Comments" column exists in the Monthly Audit block, just after
+  // "SAFETY Score". Insert it once, then reuse it thereafter.
+  if (!map['comments'] && map['safety score']) {
+    var sc = map['safety score'];
+    sh.insertColumnAfter(sc);
+    sh.getRange(headerRow, sc + 1).setValue('Comments');
+    var hv = sh.getRange(headerRow, 1, 1, sh.getLastColumn()).getValues()[0];
+    map = {};
+    for (var k = 0; k < hv.length; k++) {
+      var hh = String(hv[k]).trim();
+      if (hh) map[hh.toLowerCase()] = k + 1;
+    }
+  }
+
   // First empty row in the Audit ID column, below the header.
   var idCol = map['audit id'];
   var below = sh.getRange(headerRow + 1, idCol, Math.max(sh.getLastRow() - headerRow, 1), 1).getValues();
@@ -56,6 +70,7 @@ function appendMonthlyAuditRow_(o) {
     sh.getRange(target, idCol - 1).setValue(o.facility);
   }
   putVal('audit id', o.id);
+  putVal('comments', o.comments);
   putVal('date completed', o.date);
   putVal('result', o.result);
   putPct('average room score', o.avg);
