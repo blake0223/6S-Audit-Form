@@ -74,9 +74,16 @@ function recordResultsFor(sheetName) {
     result: result, avg: avg, total: total, sections: sections
   });
 
-  // Clear the typed 0–3 scores so the form is fresh for the next audit
-  // (the per-row Total and Score % formulas recompute to blank/0 on their own).
-  sheet.getRange(firstRow, firstRoomCol, span, nRoomCols).clearContent();
+  // Clear ONLY the typed room scores so the form is fresh for the next audit.
+  // Never touch the Total Score column (its per-row formula must survive) or the
+  // Comments column to its right — stop the clear one column before Total Score.
+  var clearCols = (layout.totalCol && layout.totalCol > firstRoomCol)
+    ? (layout.totalCol - firstRoomCol)
+    : nRoomCols;
+  sheet.getRange(firstRow, firstRoomCol, span, clearCols).clearContent();
+
+  // Re-stamp the per-row Total Score formula so it is always retained after clearing.
+  rebuildRoomTotals_(sheet);
 
   return 'Recorded ' + facilityLabel_(sheetName) + ' — ' + result
     + ' (' + (Math.round(avg * 1000) / 10) + '%). Audit ID ' + id
@@ -105,5 +112,5 @@ function getAuditLayout_(sheet) {
     if (String(a).indexOf('◆') >= 0) { section = String(a).replace(/◆/g, '').trim(); continue; }
     if (isItemNumber_(a)) items.push({ row: headerRow + 1 + i, section: section });
   }
-  return { rooms: rooms, items: items };
+  return { rooms: rooms, items: items, headerRow: headerRow, totalCol: totalCol };
 }
