@@ -58,7 +58,10 @@ function recordResultsFor(sheetName) {
   });
   var avg = roomPcts.reduce(function (s, x) { return s + x; }, 0) / roomPcts.length;
   var overall = total / (scoredCells * 3);
-  var result = (overall >= 0.67 && zeros === 0) ? 'PASS' : 'FAIL';
+  // Use the sheet's own RESULT (the PASS/FAIL cell shown above the header) so the
+  // recorded result matches what the form displays; fall back to a computed result.
+  var result = readSheetResult_(sheet, layout.headerRow)
+    || ((overall >= 0.67 && zeros === 0) ? 'PASS' : 'FAIL');
 
   var sections = {};
   Object.keys(secAgg).forEach(function (sec) {
@@ -110,6 +113,24 @@ function recordResultsFor(sheetName) {
   return 'Recorded ' + facilityLabel_(sheetName) + ' — ' + result
     + ' (' + (Math.round(avg * 1000) / 10) + '%). Audit ID ' + id
     + '. Score entries cleared for the next audit.';
+}
+
+/**
+ * Read the sheet's own RESULT (PASS/FAIL) shown in the summary area above the header
+ * row, so the recorded result matches what the audit form displays. Returns
+ * 'PASS' / 'FAIL', or '' if no result cell is found.
+ */
+function readSheetResult_(sheet, headerRow) {
+  if (!headerRow || headerRow < 2) return '';
+  var vals = sheet.getRange(1, 1, headerRow - 1, sheet.getLastColumn()).getValues();
+  for (var r = 0; r < vals.length; r++) {
+    for (var c = 0; c < vals[r].length; c++) {
+      var s = String(vals[r][c]).toUpperCase();
+      if (s.indexOf('PASS') >= 0) return 'PASS';
+      if (s.indexOf('FAIL') >= 0) return 'FAIL';
+    }
+  }
+  return '';
 }
 
 /** Read the audit sheet structure: rooms (name, col) and items (row, section). */
