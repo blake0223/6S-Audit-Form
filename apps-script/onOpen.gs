@@ -39,5 +39,6 @@ function onOpen() {
     .addSeparator()
     .addSubMenu(printM)
     .addSubMenu(recM)
+    .addItem('View past submissions', 'viewSubmissions')
     .addToUi();
 }
