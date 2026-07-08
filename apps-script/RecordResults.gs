@@ -89,12 +89,24 @@ function recordResultsFor(sheetName) {
     comments = parts.join('  |  ');
   }
 
+  // Per-room breakdown, e.g. "Conference Room: 51/72 (71%)  |  Stage Area: …".
+  var roomScoreParts = [];
+  layout.rooms.forEach(function (rm) {
+    var a = roomAgg[rm.col];
+    if (a.scored > 0) {
+      var pct = Math.round((a.sum / (a.scored * 3)) * 100);
+      roomScoreParts.push(rm.name + ': ' + a.sum + '/' + (a.scored * 3) + ' (' + pct + '%)');
+    }
+  });
+  var roomScores = roomScoreParts.join('  |  ');
+
   var id = newAuditId_();
   var tz = SpreadsheetApp.getActiveSpreadsheet().getSpreadsheetTimeZone();
   appendMonthlyAuditRow_({
     facility: facilityLabel_(sheetName), id: id,
     date: Utilities.formatDate(new Date(), tz, 'yyyy-MM-dd'),
-    result: result, avg: avg, total: total, sections: sections, comments: comments
+    result: result, avg: avg, total: total, sections: sections,
+    roomScores: roomScores, comments: comments
   });
 
   // Clear the typed room scores AND the comments so the form is fresh for the next

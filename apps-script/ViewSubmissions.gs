@@ -40,8 +40,9 @@ function viewSubmissions() {
     { label: 'Result', col: map['result'] },
     { label: 'Avg Score', col: map['average room score'], pct: true },
     { label: 'Total', col: map['total room score'] },
-    { label: 'Audit ID', col: map['audit id'] },
-    { label: 'Comments', col: map['comments'] }
+    { label: 'Room Scores', col: map['room scores'] },
+    { label: 'Comments', col: map['comments'] },
+    { label: 'Audit ID', col: map['audit id'] }
   ];
 
   var rows = [];
@@ -81,7 +82,8 @@ function buildSubmissionsHtml_(headers, rows) {
   var tbody = rows.length
     ? rows.map(function (r) {
         return '<tr data-brand="' + esc(r[0]) + '">' + r.map(function (v, i) {
-          return '<td' + (headers[i] === 'Comments' ? ' class="cmt"' : '') + '>' + esc(v) + '</td>';
+          var wrap = (headers[i] === 'Comments' || headers[i] === 'Room Scores');
+          return '<td' + (wrap ? ' class="cmt"' : '') + '>' + esc(v) + '</td>';
         }).join('') + '</tr>';
       }).join('')
     : '<tr><td colspan="' + headers.length + '" style="text-align:center;color:#6b7280;padding:20px">No audits recorded yet.</td></tr>';

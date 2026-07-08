@@ -32,19 +32,10 @@ function appendMonthlyAuditRow_(o) {
   }
   if (!headerRow) throw new Error('Could not find the "Audit ID" header in KPI Data.');
 
-  // Ensure a "Comments" column exists in the Monthly Audit block, just after
-  // "SAFETY Score". Insert it once, then reuse it thereafter.
-  if (!map['comments'] && map['safety score']) {
-    var sc = map['safety score'];
-    sh.insertColumnAfter(sc);
-    sh.getRange(headerRow, sc + 1).setValue('Comments');
-    var hv = sh.getRange(headerRow, 1, 1, sh.getLastColumn()).getValues()[0];
-    map = {};
-    for (var k = 0; k < hv.length; k++) {
-      var hh = String(hv[k]).trim();
-      if (hh) map[hh.toLowerCase()] = k + 1;
-    }
-  }
+  // Ensure the Monthly Audit block has "Room Scores" and "Comments" columns (after
+  // SAFETY Score). Inserted once, reused thereafter.
+  map = ensureKpiColumn_(sh, headerRow, map, 'Room Scores', 'safety score');
+  map = ensureKpiColumn_(sh, headerRow, map, 'Comments', 'room scores');
 
   // First empty row in the Audit ID column, below the header.
   var idCol = map['audit id'];
@@ -70,6 +61,7 @@ function appendMonthlyAuditRow_(o) {
     sh.getRange(target, idCol - 1).setValue(o.facility);
   }
   putVal('audit id', o.id);
+  putVal('room scores', o.roomScores);
   putVal('comments', o.comments);
   putVal('date completed', o.date);
   putVal('result', o.result);
@@ -79,4 +71,23 @@ function appendMonthlyAuditRow_(o) {
     putPct(sec.toLowerCase() + ' score', o.sections[sec]);
   });
   return target;
+}
+
+/**
+ * Ensure a column named `name` exists on the header row; if missing, insert it just
+ * after the column whose header matches `afterKey` (lowercased). Returns a rebuilt
+ * header→column map. No-op if the column exists or the anchor is missing.
+ */
+function ensureKpiColumn_(sh, headerRow, map, name, afterKey) {
+  if (map[name.toLowerCase()] || !map[afterKey]) return map;
+  var after = map[afterKey];
+  sh.insertColumnAfter(after);
+  sh.getRange(headerRow, after + 1).setValue(name);
+  var hv = sh.getRange(headerRow, 1, 1, sh.getLastColumn()).getValues()[0];
+  var m = {};
+  for (var k = 0; k < hv.length; k++) {
+    var hh = String(hv[k]).trim();
+    if (hh) m[hh.toLowerCase()] = k + 1;
+  }
+  return m;
 }
